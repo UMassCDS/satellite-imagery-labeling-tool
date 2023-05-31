@@ -1,5 +1,9 @@
 # Changelog
 
+## 5/31/2023
+
+- Added capability to save labeled results to Azure blob as described in [issue #41](https://github.com/UMassCDS/RedCross2022/issues/41).
+
 ## 3/6/2023
 
 - Added copy/paste capability to labeler tool as requested in [issue #10](https://github.com/microsoft/satellite-imagery-labeling-tool/issues/10). See [docs for more information](https://github.com/microsoft/satellite-imagery-labeling-tool/blob/main/docs/Labeler.md#copy--paste-shapes). 
