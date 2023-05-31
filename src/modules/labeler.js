@@ -611,11 +611,20 @@ export class LabelerApp {
 				`https://${azureAccountName}.blob.core.windows.net?${sasToken}`
 			);
 
+			function getDateTimeString() {
+				// get current time in format YYYY-MM-DD-HHMMSS
+				const utcDate = new Date()
+				const offset = utcDate.getTimezoneOffset()
+				const localDate = new Date(utcDate.getTime() - (offset * 60 * 1000))
+				const dateTimeArray = localDate.toISOString().split('T')
+				const myTime = dateTimeArray[1].split(".")[0].split(":").join("")
+				return dateTimeArray[0] + "-" + myTime
+			}
+
 			async function saveToAzure() {
 				const containerClient = blobServiceClient.getContainerClient(azureContainerName);
 			  
-				const currentTime = new Date();
-				const blobName = "labeled_" + currentTime.toLocaleDateString('de-DE') + "_" + currentTime.toLocaleTimeString('de-DE') + "_"+ fileName;
+				const blobName = "labeled_" + getDateTimeString() + "_"+ fileName;
 				console.log(blobName);
 				const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 				const uploadBlobResponse = await blockBlobClient.uploadData(outputBlob);
