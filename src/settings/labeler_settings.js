@@ -84,5 +84,11 @@ export let appSettings = {
 		"https://overpass.kumi.systems/api/",
 		"https://overpass.openstreetmap.fr/api/",
 		"https://overpass.openstreetmap.ru/cgi/"
-	]
+	],
+
+	azureConfig: {
+		accountName: process.env.AZ_STORAGE_ACCOUNTNAME,
+		containerName: process.env.AZ_STORAGE_CONTAINERNAME,
+		sasToken: process.env.AZ_STORAGE_SASTOKEN
+	} 
 };

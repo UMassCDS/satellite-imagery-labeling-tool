@@ -102,3 +102,10 @@ docker run --env AZ_MAPS_SUBSCRIPTION_KEY="<your subscription key here>" -d -p 3
 ```
 
 More details about Azure Maps enabling Azure maps are found in the(Imagery Layers documentation)[Layers.md].
+
+### Specifying SAS keys for accessing blobs
+In order to read from and write to Azure storage, add the three environment variables using `--env`, just as described in the last section:
+```
+docker run --env AZ_STORAGE_ACCOUNTNAME="<your storage account name>" --env AZ_STORAGE_CONTAINERNAME="<your container name>" --env AZ_STORAGE_SASTOKEN="<your account SAS token>" -d -p 3000:1234 satellite-imagery-labeling-tool
+```
+You can generate your SAS token on Azure portal, navigate to "Storage Account-[your storage account]-Containers-[your container]-Shared access tokens". There you can generate an account SAS and set the expiry date, note that once you generate it, it cannot be revoked, so keep it safe by following the Microsoft recommended best [practice](https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview#best-practices-when-using-sas)!
