@@ -49,7 +49,21 @@ export let appSettings = {
 						'USGS - US Imagery': {
 							type: 'OgcMapLayer',
 							url: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/WMTS/1.0.0/WMTSCapabilities.xml'
+						},
+						"Chang": {
+							type: "TileLayer",
+							minSourceZoom: 1,
+							maxSourceZoom: 19,
+							// bounds: [-80.627296, 27.997976, -80.560208, 28.064522],
+							// center: [17.4985857, 121.0831880],
+    						// "boundingBox": [[0.0, 0.0], [0.115, 0.105]],
+							// bounds: [120.9850650, 16.9705536, 121.1813110, 18.0266179],
+							tileSize: 256,
+							tileUrl: "http://localhost:8888/cog/tiles/{z}/{x}/{y}.jpg?url=https://redcross8280.blob.core.windows.net/redcross8280/opendata.digitalglobe.com-events-typhoon-mangkhut-pre-event-2018-09-11-1030010087D10300-1030010087D10300.tif?st=2023-05-20T19:06:58Z%26sp=racwdl%26se=2023-06-21T03:06:58Z%26spr=https%26sv=2022-11-02%26sr=c%26sig=28Mvl4x4YDr7/PIxAbkPiGYq4MOWMN5iiQ08s6sVARs="
+							// url=https://maxwell.cs.umass.edu/gperezsarabi/starcluster-labeling-tool/targets/ngc4449_IR_opt_log2.tif
+							// url=https://naipeuwest.blob.core.windows.net/naip/v002/fl/2019/fl_60cm_2019/28080/m_2808060_sw_17_060_20191215.tif
 						}
+					
 					},
 					"primary_classes": {
 						"display_name": "Primary class",

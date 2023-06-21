@@ -109,3 +109,21 @@ In order to read from and write to Azure storage, add the three environment vari
 docker run --env AZ_STORAGE_ACCOUNTNAME="<your storage account name>" --env AZ_STORAGE_CONTAINERNAME="<your container name>" --env AZ_STORAGE_SASTOKEN="<your account SAS token>" -d -p 3000:1234 satellite-imagery-labeling-tool
 ```
 You can generate your SAS token on Azure portal, navigate to "Storage Account-[your storage account]-Containers-[your container]-Shared access tokens". There you can generate an account SAS and set the expiry date, note that once you generate it, it cannot be revoked, so keep it safe by following the Microsoft recommended best [practice](https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview#best-practices-when-using-sas)!
+
+### Load tiff as layer
+Set up environment
+```
+pip install uvicorn
+pip install titiler.core
+pip install titiler.application
+```
+Run the titiler service locally
+```
+uvicorn --port 8888 titiler.application.main:app
+```
+If you encounter the error "AssertionError: Cannot use Query for path param", then downgrade the fastapi
+```
+pip uninstall fastapi
+pip install fastapi==0.24.1
+```
+The titiler service should be up running. And the new layer in labeler_settings.js should be able to load.
