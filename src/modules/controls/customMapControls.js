@@ -387,6 +387,10 @@ export class SimpleLayerControl {
 				visible: (l.getId() === layerId)
 			});
 		});
+		let curr_layer = this.#layers.filter(l => l.id == layerId)[0];
+		if(curr_layer.properties.bounds){
+			this.map.setCamera({bounds:curr_layer.properties.bounds})
+		}
 
 		this.#currentLayer = layerId;
 	}

@@ -720,6 +720,147 @@ export class AddLayerDialog extends SimpleEventerClass {
     }
 }
 
+
+/**
+ * Template for a tiff dialog control.
+ */
+const addTiffDialogTemplate = `
+    <table class="add-layer-dialog">
+        <tr class='layer-name'>
+            <td>Layer name</td>
+            <td><input type='text' aria-label='layer name'/></td>
+        </tr>
+        <tr class='tiff-url'>
+            <td>Tiff Url</td>
+            <td><input type='text' aria-label='tiff url'/> <img name='service-loader' src='assets/small-loader.gif' style='visibility:hidden' aria-label='Service loading icon'/></td>
+        </tr>
+        <tr class='tile-size'>
+            <td>Tile size</td>
+            <td>
+                <label><input type='radio' name='tile-size-radio' value='256' checked='checked' aria-label='tile size of 256 pixels'/> 256</label>
+                <label><input type='radio' name='tile-size-radio' value='512' aria-label='tile size of 512 pixels'/> 512</label>
+            </td>
+        </tr>
+    </table>
+`;
+
+
+/**
+ * A modal dialog panel that allows adding Tiff layers.
+ * Exposes a 'close' event that will have an array of layers or null as an argument.
+ */
+export class AddTiffDialog extends SimpleEventerClass {
+    #map;
+    #container;
+
+    /**
+     * A modal dialog panel that allows map layers to be created.
+     * @param {*} map The map instance.
+     */
+    constructor(map) {
+        super();
+
+        const self = this;
+
+        self.#map = map;
+
+        //Load in the CSS styles for the dialog.
+        Utils.requireCSS('css/dialogs.css');
+
+        //Create the container. 
+        const c = document.createElement('div');
+        c.className = 'dialog-container';
+        c.style.display = 'none';
+
+        //Set the title of the dialog.
+        c.innerHTML = dialogTemplate.replace('{{title}}', 'Add Tiff');
+
+        //Wire up the close button to cancel the creation of a layer.
+        c.querySelector('.dialog-title button').onclick = () => {
+            this.close();
+        };
+
+        document.body.appendChild(c);
+        self.#container = c;
+
+        //Create UI elements.
+        const content = c.querySelector('.dialog-content');
+        content.innerHTML = addTiffDialogTemplate;
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'text-btn-round addLayerBtn';
+        addBtn.innerHTML = 'Add';
+        addBtn.setAttribute('type', 'button');
+        addBtn.onclick = self.#addBtnClicked;
+        content.appendChild(addBtn);
+    }
+
+    /**
+     * Shows the dialog.
+     */
+    show() {
+        const self = this;
+
+        //Display dialog.
+        self.#container.style.display = '';
+
+        //Set focus on the close button.
+        self.#container.querySelector('.dialog-title button').blur();
+    }
+
+    /**
+     * Close the dialog without making any changes.
+     */
+    close(layers) {
+        this.#container.style.display = 'none';
+
+        //Trigger the close event.
+        this.trigger('close', layers);
+    }
+
+    /**
+     * Event handler for when the tiff Add button is clicked. 
+     */
+    #addBtnClicked = async () => {
+        const self = this;
+        const layers = {};
+
+        const c = self.#container;
+
+        const ln = c.querySelector('.layer-name input').value;
+        let tiffUrl = c.querySelector('.tiff-url input').value
+        tiffUrl = encodeURIComponent(tiffUrl)
+        const serviceUrl = 'http://localhost:8888/cog/tiles/{z}/{x}/{y}.jpg?url='+tiffUrl;
+
+        const bounds = await self.#getBounds(tiffUrl);
+
+        layers[ln] = {
+            type: 'TileLayer',
+            tileUrl: serviceUrl,
+            bounds: bounds,
+            tileSize: (c.querySelector('input[name="tile-size-radio"]').checked) ? 256 : 512,
+            enabled: true
+        };
+        self.close(layers);
+    }
+
+    /**
+     * Retrieves the bounding box coordinates from the input controls. 
+     * @returns A GeoJSON bounding box object [west, south, east, north]
+     */
+    async #getBounds(tiffUrl) {
+        let url = "http://localhost:8888/cog/bounds?url="+tiffUrl
+        let result = await fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+        })
+        let val = await result.json()
+        console.log(val)
+        return val.bounds;
+    }
+}
+
+
 /**
  * A simple dialog that displays custom content.
  */
