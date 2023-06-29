@@ -1,5 +1,5 @@
-import { Utils, SimpleEventerClass } from "../utils.js";
-import { mapSettings } from '../../settings/map_settings.js'
+import { mapSettings } from '../../settings/map_settings.js';
+import { SimpleEventerClass, Utils } from "../utils.js";
 
 /**
  * Template for a dialog panel.
@@ -131,7 +131,7 @@ export class AddLayerDialog extends SimpleEventerClass {
             defaults: {
                 topLeft: '',
                 topRight: '',
-                bottomRight:'',
+                bottomRight: '',
                 bottomLeft: '',
                 accepts: '.jpg,.png'
             }
@@ -669,12 +669,12 @@ export class AddLayerDialog extends SimpleEventerClass {
         const bounds = [-180, -85.5, 180, 85.5];
 
         const parts = boundsText.split(',');
-        if(parts.length >= 4){
-            parts.forEach((x, i)=> {
+        if (parts.length >= 4) {
+            parts.forEach((x, i) => {
                 const num = parseFloat(x.trim())
-                if(!isNaN(num) && i <= 4) {
+                if (!isNaN(num) && i <= 4) {
                     //Even index values are longitudes.
-                    if(i%2 === 0){                        
+                    if (i % 2 === 0) {
                         bounds[i] = atlas.math.normalizeLongitude(num);
                     } else {
                         bounds[i] = atlas.math.normalizeLatitude(num);
@@ -698,18 +698,18 @@ export class AddLayerDialog extends SimpleEventerClass {
             [-180, -85.5]   //bottomLeft
         ];
 
-        const nameIdx = ['topLeft','topRight', 'bottomRight','bottomLeft'];
+        const nameIdx = ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'];
 
         inputs.forEach(x => {
             const pair = x.value.split(',');
-            if(pair.length >= 2){
+            if (pair.length >= 2) {
                 const lon = parseFloat(pair[0].trim());
                 const lat = parseFloat(pair[1].trim());
                 const idx = nameIdx[x.name];
 
-                if(idx > -1 && !isNaN(lon) && !isNaN(lat) && typeof extents[x.name] !== 'undefined'){
+                if (idx > -1 && !isNaN(lon) && !isNaN(lat) && typeof extents[x.name] !== 'undefined') {
                     extents[idx] = [
-                        atlas.math.normalizeLongitude(lon), 
+                        atlas.math.normalizeLongitude(lon),
                         atlas.math.normalizeLatitude(lat)
                     ];
                 }
@@ -830,7 +830,7 @@ export class AddTiffDialog extends SimpleEventerClass {
         const ln = c.querySelector('.layer-name input').value;
         let tiffUrl = c.querySelector('.tiff-url input').value
         tiffUrl = encodeURIComponent(tiffUrl)
-        const serviceUrl = 'http://localhost:8888/cog/tiles/{z}/{x}/{y}.jpg?url='+tiffUrl;
+        const serviceUrl = 'http://localhost:8888/cog/tiles/{z}/{x}/{y}.jpg?url=' + tiffUrl;
 
         const bounds = await self.#getBounds(tiffUrl);
 
@@ -849,14 +849,26 @@ export class AddTiffDialog extends SimpleEventerClass {
      * @returns A GeoJSON bounding box object [west, south, east, north]
      */
     async #getBounds(tiffUrl) {
-        let url = "http://localhost:8888/cog/bounds?url="+tiffUrl
-        let result = await fetch(url, {
-            method: 'GET',
-            mode: 'cors',
-        })
-        let val = await result.json()
-        console.log(val)
-        return val.bounds;
+        let url = "http://localhost:8888/cog/bounds?url=" + tiffUrl
+        try {
+            let result = await fetch(url, {
+                method: 'GET',
+                mode: 'cors',
+            });
+
+            // Check if the request was successful
+            if (!result.ok) {
+                throw new Error(`HTTP error! status: ${result.status}`);
+            }
+
+            let val = await result.json();
+            console.log(val); // can also consider removing console logging
+            return val.bounds;
+
+        } catch (error) {
+            console.error('An error occurred while fetching the bounds:', error);
+            // can send some default values here with an error?
+        }
     }
 }
 
@@ -1007,7 +1019,7 @@ export class SaveResultsDialog {
             const allowedProps = ['source', 'task_name'];
             allowedProps.push(self.#primaryPropName);
 
-            if(self.#secondaryPropName){
+            if (self.#secondaryPropName) {
                 allowedProps.push(self.#secondaryPropName);
             }
 
