@@ -1,4 +1,4 @@
-import { Utils, SimpleEventerClass } from '../utils.js';
+import { SimpleEventerClass, Utils } from '../utils.js';
 
 ////////////////////////////////
 // Custom map controls
@@ -225,9 +225,9 @@ export class SimpleLayerControl {
 	setVisibleLayer(layerId) {
 		const labels = this.#container.querySelectorAll('label');
 
-		for(let i=0;i<labels.length;i++) {
+		for (let i = 0; i < labels.length; i++) {
 			let id = labels[i].getAttribute('rel');
-			if(id === layerId) {
+			if (id === layerId) {
 				labels[i].click();
 				break;
 			}
@@ -388,9 +388,14 @@ export class SimpleLayerControl {
 			});
 		});
 		let curr_layer = this.#layers.filter(l => l.id == layerId)[0];
-		if(curr_layer.properties.bounds){
-			this.map.setCamera({bounds:curr_layer.properties.bounds})
+		if (!curr_layer) {
+			console.error(`Layer with ID ${layerId} not found.`);
+			return;
 		}
+		if (curr_layer.properties.bounds) {
+			this.map.setCamera({ bounds: curr_layer.properties.bounds });
+		}
+
 
 		this.#currentLayer = layerId;
 	}
@@ -493,7 +498,7 @@ export class AnnotationClassControl extends SimpleEventerClass {
 		if (primary && primary.names && primary.names.length > 0) {
 			const title = document.createElement('div');
 			title.className = 'annotation-class-control-title';
-			title.innerText = primary.display_name || 'Primary class';			
+			title.innerText = primary.display_name || 'Primary class';
 			self.#primaryContainer.appendChild(title);
 
 			if (!self.#currentPrimary || primary.names.indexOf(self.#currentPrimary) === -1) {
@@ -511,7 +516,7 @@ export class AnnotationClassControl extends SimpleEventerClass {
 				l.onclick = () => {
 					self.#currentPrimary = l.querySelector('span').innerText;
 					const opt = self.#bulkEditMode;
-					if(opt){
+					if (opt) {
 						opt.classType = 'primary';
 						opt.value[primary.property_name] = self.#currentPrimary;
 					}
@@ -541,7 +546,7 @@ export class AnnotationClassControl extends SimpleEventerClass {
 			}
 
 			let hasMatch = false;
-			
+
 			//Create a radio button for each class.
 			for (let i = 0; i < secondary.names.length; i++) {
 				const test = (self.#currentSecondary === secondary.names[i]);
@@ -550,7 +555,7 @@ export class AnnotationClassControl extends SimpleEventerClass {
 				l.onclick = () => {
 					self.#currentSecondary = l.querySelector('span').innerText;
 					const opt = self.#bulkEditMode;
-					if(opt){
+					if (opt) {
 						opt.classType = 'secondary';
 						opt.value[secondary.property_name] = self.#currentSecondary;
 					}
@@ -571,18 +576,18 @@ export class AnnotationClassControl extends SimpleEventerClass {
 	}
 
 	/** Completes a bulk edit process. */
-	completeBulkEdit(){
+	completeBulkEdit() {
 		const self = this;
 		self.#bulkEditMode = null;
-		
+
 		//Set the button states to inactive.
 		self.#elm.querySelectorAll('button').forEach(b => {
 			b.classList.remove('active');
 		});
-		
+
 		self.trigger('bulkedit', null);
 	}
-	
+
 	/**
 	 * Creates a radio button for a class list item.
 	 * @param {*} name The class name.
@@ -605,7 +610,7 @@ export class AnnotationClassControl extends SimpleEventerClass {
 	}
 
 	/** primary, secondary */
-	#addBulkEditBtns(elm, classType){
+	#addBulkEditBtns(elm, classType) {
 
 		const self = this;
 		const btnContainer = document.createElement('div');
@@ -616,8 +621,8 @@ export class AnnotationClassControl extends SimpleEventerClass {
 		let alt = `Click to bulk update ${classType} class`;
 
 		const pBtn = document.createElement('button');
-		pBtn.classList.add('azure-maps-control-button');	
-		pBtn.classList.add('annotation-class-control-pointBtn');	
+		pBtn.classList.add('azure-maps-control-button');
+		pBtn.classList.add('annotation-class-control-pointBtn');
 		pBtn.setAttribute('type', 'button');
 		pBtn.setAttribute('alt', alt);
 		pBtn.setAttribute('title', alt);
@@ -630,9 +635,9 @@ export class AnnotationClassControl extends SimpleEventerClass {
 		alt = `Rectangle select to bulk update ${classType} class`;
 
 		const rBtn = document.createElement('button');
-		rBtn.classList.add('azure-maps-control-button');	
-		rBtn.classList.add('annotation-class-control-rectangleBtn');	
-		rBtn.setAttribute('type', 'button');		
+		rBtn.classList.add('azure-maps-control-button');
+		rBtn.classList.add('annotation-class-control-rectangleBtn');
+		rBtn.setAttribute('type', 'button');
 		rBtn.setAttribute('alt', alt);
 		rBtn.setAttribute('title', alt);
 		rBtn.onclick = () => {
@@ -642,11 +647,11 @@ export class AnnotationClassControl extends SimpleEventerClass {
 	}
 
 	/** Event handler for when one of the bulk edit buttons have been clicked. */
-	#bulkEditBtnClicked = (mode, classType, elm) => {		
+	#bulkEditBtnClicked = (mode, classType, elm) => {
 		const self = this;
 		const bem = self.#bulkEditMode;
 
-		if(!bem || !(bem.mode === mode && bem.classType === classType)) {
+		if (!bem || !(bem.mode === mode && bem.classType === classType)) {
 			//Set the button states to inactive.
 			self.#elm.querySelectorAll('button').forEach(b => {
 				b.classList.remove('active');
@@ -658,18 +663,18 @@ export class AnnotationClassControl extends SimpleEventerClass {
 				value: {}
 			};
 
-			if(classType === 'primary'){
+			if (classType === 'primary') {
 				opt.value[self.#primary.property_name] = self.#currentPrimary;
 			} else {
 				opt.value[self.#secondary.property_name] = self.#currentSecondary;
 			}
 
-			elm.classList.add('active');			
+			elm.classList.add('active');
 
 			self.#bulkEditMode = opt;
 			self.trigger('bulkedit', opt);
 		} else {
-			elm.classList.remove('active');	
+			elm.classList.remove('active');
 			elm.blur();
 			self.#bulkEditMode = null;
 			self.trigger('bulkedit', null);
@@ -697,7 +702,7 @@ export class SimpleContentControl {
 		container.className = 'azure-maps-control-container light simpleContentControl';
 
 		self.#container = container;
-		self.setOptions(options);		
+		self.setOptions(options);
 	}
 
 	/**
@@ -706,7 +711,7 @@ export class SimpleContentControl {
 	 * @param {*} controlOptions Options used when load the control into the map.
 	 * @returns The control DOM element.
 	 */
-	onAdd(map, controlOptions){
+	onAdd(map, controlOptions) {
 		this.map = map;
 		return this.#container;
 	}
@@ -733,17 +738,17 @@ export class SimpleContentControl {
 	 * @param {*} options Options to set on the control.
 	 */
 	setOptions(options) {
-		if(options){
+		if (options) {
 			const o = this.#options;
 
-			if(options.content){
+			if (options.content) {
 				o.content = options.content;
 				this.#container.innerHTML = options.content;
 			}
 
-			if(typeof options.visible === 'boolean'){
+			if (typeof options.visible === 'boolean') {
 				o.visible = options.visible;
-				this.#container.style.display = (o.visible)? '': 'none';
+				this.#container.style.display = (o.visible) ? '' : 'none';
 			}
 		}
 	}
