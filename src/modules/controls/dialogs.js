@@ -862,12 +862,11 @@ export class AddTiffDialog extends SimpleEventerClass {
             }
 
             let val = await result.json();
-            console.log(val); // can also consider removing console logging
             return val.bounds;
 
         } catch (error) {
             console.error('An error occurred while fetching the bounds:', error);
-            // can send some default values here with an error?
+            return [-180, -85.5, 180, 85.5];
         }
     }
 }
