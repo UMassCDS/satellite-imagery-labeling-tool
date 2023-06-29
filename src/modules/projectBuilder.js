@@ -4,7 +4,7 @@ import { mapSettings } from '../settings/map_settings.js'
 import { Utils } from './utils.js';
 import { ProjectUtils } from './projectUtils.js';
 import { SimpleLayerControl, SearchBarControl, SimpleContentControl } from './controls/customMapControls.js';
-import { AddLayerDialog, ContentDialog } from './controls/dialogs.js';
+import { AddLayerDialog, AddTiffDialog, ContentDialog } from './controls/dialogs.js';
 import { SimpleBinding } from './simpleBinding.js'
 
 /**
@@ -17,6 +17,7 @@ export class ProjectBuilderApp {
     #baselayers = [];
     #layerControl;
     #layerDialog;
+    #tiffDialog;
     #statsControl;
     #config = {
         id: '',
@@ -304,19 +305,28 @@ export class ProjectBuilderApp {
 
         //Create add layer dialog.
         self.#layerDialog = new AddLayerDialog(self.map);
+        self.#tiffDialog = new AddTiffDialog(self.map);
 
-        self.#layerDialog.on('close', (layers) => {
+        let addLayersCallback = (layers) => {
             if (layers) {
                 self.#addLayers(layers);
 
                 //Reload the layer list states.
                 self.#updateLayerStates();
             }
-        });
+        }
 
-        //Add layer(s) button click
-        document.querySelector('#step-2 button').onclick = () => {
+        self.#layerDialog.on('close', addLayersCallback);
+        self.#tiffDialog.on('close', addLayersCallback)
+
+        // Add layer(s) button click
+        document.querySelector('#add-layer-btn').onclick = () => {
             self.#layerDialog.show();
+        };
+
+        //Add tiff(s) button click
+        document.querySelector('#add-tiff-btn').onclick = () => {
+            self.#tiffDialog.show();
         };
 
         //Load default layers.
