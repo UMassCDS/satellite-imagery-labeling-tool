@@ -3,7 +3,7 @@ import { mapSettings } from '../settings/map_settings.js';
 
 import { BlobServiceClient } from "@azure/storage-blob";
 import { AnnotationClassControl, SearchBarControl, SimpleContentControl, SimpleLayerControl } from './controls/customMapControls.js';
-import { AddLayerDialog } from './controls/dialogs.js';
+import { AddLayerDialog,AddTiffDialog } from './controls/dialogs.js';
 import { Flyout, Navbar } from './controls/layoutControls.js';
 import { Utils } from './utils.js';
 
@@ -24,6 +24,11 @@ export class LabelerApp {
 	#classControl;
 	#statsControl;
 	#layerDialog;
+	#tiffDialog;
+	#tileWiseFeatures;
+	#tileBoundaries = new Map();
+	#detectorCounts = null;
+	#currentTile = null;
 	#layerOptions = {
 		fadeDuration: 0,
 		contrast: 0,
@@ -52,6 +57,12 @@ export class LabelerApp {
 			name: 'Layers',
 			icon: 'layers',
 			flyoutCard: 'layersCard'
+		},
+		{
+			type: 'menuItem',
+			name: 'Tiles',
+			icon: 'tiles',
+			flyoutCard: 'tilesCard'
 		},
 		{
 			type: 'menuItem',
@@ -197,6 +208,7 @@ export class LabelerApp {
 
 		document.getElementById('app-theme').onchange = self.#themeColorChanged;
 
+		self.#tileWiseFeatures = new Map()
 		//Initialized the flyout panels.
 		self.#initLoadPanel();
 		self.#initLayerPanel();
@@ -249,9 +261,27 @@ export class LabelerApp {
 		};
 
 		//File input for local data.
-		const loadLocalDataFile = document.getElementById('loadLocalDataFile');
-		loadLocalDataFile.onchange = (e) => {
-			if (e.target.files && e.target.files.length > 0) {
+		const loadLocalDataFiles = document.getElementById('loadLocalDataFile');
+		loadLocalDataFiles.onchange = async (e) => {
+			if (e.target.files && e.target.files.length > 0){
+				for (let file of e.target.files) {
+					if (file.name.toLowerCase().indexOf('.geojson') > -1) {
+						let data = await file.text()
+
+						try {
+							let parsed = JSON.parse(data)
+							let tileName = file.name.split('.')[0]
+							self.#tileWiseFeatures.set(tileName,parsed.features);
+							self.#detectorCounts = parsed['detectorCounts']
+							self.#tileBoundaries.set(tileName,parsed.features[0].properties.tile_bbox);
+						} catch (e) {
+							alert('Unable to load data file.');
+						}
+					}
+				};
+				self.#initTilesPanel();
+			}
+			else if (e.target.files && e.target.files.length > 0) {
 				const file = e.target.files[0];
 
 				//Create initial properties to assign to the imported shapes.
@@ -297,14 +327,14 @@ export class LabelerApp {
 				}
 
 				//Clear the file input so that the same file can be reloaded if desired.
-				loadLocalDataFile.value = null;
+				loadLocalDataFiles.value = null;
 			}
 		};
 
 		//Click event for a button to load local data file.
 		document.getElementById('loadLocalData').onclick = () => {
 			self.#popup.close();
-			loadLocalDataFile.click();
+			loadLocalDataFiles.click();
 			self.flyout.hide();
 		};
 
@@ -514,15 +544,19 @@ export class LabelerApp {
 
 		//Create add layer dialog.
 		self.#layerDialog = new AddLayerDialog(self.map);
+		self.#tiffDialog = new AddTiffDialog(self.map);
 
-		self.#layerDialog.on('close', (layers) => {
-			if (layers) {
-				self.#addLayers(layers);
+		let addLayersCallback = (layers) => {
+            if (layers) {
+                self.#addLayers(layers);
 
-				//Reload the layer list states.
-				self.#updateLayerStates();
-			}
-		});
+                //Reload the layer list states.
+                self.#updateLayerStates();
+            }
+        }
+
+		self.#layerDialog.on('close', addLayersCallback);
+        self.#tiffDialog.on('close', addLayersCallback)
 
 		//Reset filters button
 		document.querySelector('#layersCard input[type="button"]').onclick = () => {
@@ -545,10 +579,57 @@ export class LabelerApp {
 		};
 
 		//Add layer(s) button click
-		document.querySelector('#layersCard button').onclick = () => {
+		document.querySelector('#add-layer-btn').onclick = () => {
 			self.#popup.close();
 			self.#layerDialog.show();
 		};
+		//Add tiff(s) button click
+        document.querySelector('#add-tiff-btn').onclick = () => {
+            self.#tiffDialog.show();
+        };
+	}
+
+	#initTilesPanel() {
+		const self = this;
+		let keys = self.#tileBoundaries.keys();
+		let tilesListBox = document.getElementById('TilesList')
+		for(let tile of self.#tileBoundaries.keys()){
+			tilesListBox.add(new Option(tile,tile));
+		}
+		tilesListBox.addEventListener('change',()=>{
+			self.#refreshTileSelection();
+		})
+		self.#refreshTileSelection();
+	}
+
+	#refreshTileSelection(){
+		try{
+			let tilesListBox = document.getElementById('TilesList')
+			let currentTile = tilesListBox.value
+			let boundaries = this.#tileBoundaries.get(tilesListBox.value).split(',').map(parseFloat)
+			let bbox = atlas.data.BoundingBox(boundaries);
+			// Set the camera
+			this.map.setCamera({	
+				bounds: boundaries,
+				maxBounds: bbox,
+				padding: 100
+			});
+			this.#currentTile = currentTile
+			this.#featureSource.clear()
+			this.#importFeatures(this.#tileWiseFeatures.get(currentTile),'TileFeatures',false,true)
+			this.#runAndUpdateDiscount()
+		} catch(e){
+			console.log(e)
+		}
+	}
+
+	#runAndUpdateDiscount(){
+		let tilesListBox = document.getElementById('TilesList')
+		let currentTile = tilesListBox.value
+		let count = this.#tileWiseFeatures.get(currentTile).length
+
+
+		document.querySelector('#appSubtitle').innerHTML = "Discount Count : "+count;
 	}
 
 	/** Initializes the save panel. */
@@ -1077,17 +1158,16 @@ export class LabelerApp {
 				includeMarkers: false,
 				includeImageLayers: false,
 				sources: [self.#aoiSource, self.#featureSource]
-			}),
-			new atlas.control.ZoomControl()], {
+			})], {
 			position: 'bottom-right'
 		});
 
 		//Add the search bar if valid Azure Maps credentials provided, and app settings have this feature enabled.
-		if (self.#hasAZMapAuth && appSettings.showSearchBar) {
-			map.controls.add(new SearchBarControl(), {
-				position: 'top-left'
-			});
-		}
+		// if (self.#hasAZMapAuth && appSettings.showSearchBar) {
+		// 	map.controls.add(new SearchBarControl(), {
+		// 		position: 'top-left'
+		// 	});
+		// }
 
 		document.getElementById('dataShiftFilter').options[1].style.display = (self.#hasAZMapAuth) ? '' : 'none';
 

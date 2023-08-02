@@ -44,7 +44,7 @@
 							class="material-symbols-outlined">lan</i><span>Local task file</span></button>
 
 					<input type="file" id="loadLocalDataFile"
-						accept=".geojson,.geojsonl,.xml,.kml,.kmz,.zip,.gml,.gpx,.georss,.csv,.txt,.tab,.pipe,.json,.js" />
+						accept=".geojson,.geojsonl,.xml,.kml,.kmz,.zip,.gml,.gpx,.georss,.csv,.txt,.tab,.pipe,.json,.js" multiple/>
 					<button id="loadLocalData" class="icon-btn-round" type="button"><i
 							class="material-symbols-outlined">database</i><span>Local data file</span></button>
 
@@ -132,7 +132,8 @@
 
 					<input type="button" class="text-btn-round" value="Reset filters" />
 
-					<button class="text-btn-round" type="button">+Add new layer(s)</button>
+					<button id = "add-layer-btn" class="text-btn-round" type="button">+Add new layer(s)</button>
+                	<button id = "add-tiff-btn" class="text-btn-round" type="button">+Add new Tiff Layers(s)</button>
 				</div>
 
 				<div id="saveCard" style="display:none">
@@ -157,6 +158,27 @@
 					<label><input type="checkbox" checked="checked" /> Minimize exported properties</label>
 
 					<button class="text-btn-round" type="button">Save</button>
+				</div>
+
+				<div id="tilesCard" style="display:none">
+					<style>
+						select {
+							width:100%;
+							height:100%;
+						}
+						
+						option {
+							background-color: #f7f7f7;
+							color: #333;
+							font-size: 25px;
+						}
+
+						#tilesLabel{
+							font-size: 15px;
+						}
+					</style>
+					<label id = "tilesLabel" for="TilesList">Select the tile to label and run DISCount</label>
+					<select id="TilesList"></select>
 				</div>
 
 				<div id="screenshotCard" style="display:none">
