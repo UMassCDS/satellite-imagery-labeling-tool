@@ -623,6 +623,19 @@ export class LabelerApp {
 		}
 	}
 
+	#updateShapesForTile(){
+		let self = this;
+		let prev_count = this.#tileWiseFeatures.get(this.#currentTile).length;
+		if(prev_count!=this.#featureSource.shapes.length){
+			let newFeatures = [];
+			for(let shape of this.#featureSource.shapes){
+				newFeatures.push(shape.data);
+			}
+			this.#tileWiseFeatures.set(this.#currentTile,newFeatures)
+			this.#runAndUpdateDiscount()
+		}
+	}
+
 	#runAndUpdateDiscount(){
 		let tilesListBox = document.getElementById('TilesList')
 		let currentTile = tilesListBox.value
@@ -1042,6 +1055,11 @@ export class LabelerApp {
 		map.events.add('drawingcomplete', dm, (e) => {
 			self.#drawingComplete(e);
 		});
+
+		// Try to update the shapes if data changes
+		map.events.add('data',()=>{
+			self.#updateShapesForTile()
+		})
 
 		//When drawing mode changed, close the popup.
 		map.events.add('drawingmodechanged', dm, (mode) => {
