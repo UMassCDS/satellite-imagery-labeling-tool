@@ -27,6 +27,7 @@ export class LabelerApp {
 	#tiffDialog;
 	#tileWiseFeatures;
 	#tileBoundaries = new Map();
+	#tileSampleIndexes = new Map();
 	#detectorCounts = null;
 	#currentTile = null;
 	#layerOptions = {
@@ -274,6 +275,8 @@ export class LabelerApp {
 							self.#tileWiseFeatures.set(tileName,parsed.features);
 							self.#detectorCounts = parsed['detectorCounts']
 							self.#tileBoundaries.set(tileName,parsed.features[0].properties.tile_bbox);
+							if(parsed.indexes && parsed.indexes.length>0)
+								self.#tileSampleIndexes.set(tileName,parsed.indexes)
 						} catch (e) {
 							alert('Unable to load data file.');
 						}
@@ -591,9 +594,21 @@ export class LabelerApp {
 
 	#initTilesPanel() {
 		const self = this;
-		let keys = self.#tileBoundaries.keys();
 		let tilesListBox = document.getElementById('TilesList')
-		for(let tile of self.#tileBoundaries.keys()){
+		let tileNames = [... self.#tileSampleIndexes.keys()]
+		tileNames.sort((a,b)=>{
+			try{
+				if(Math.min(self.#tileSampleIndexes.get(a))<Math.min(self.#tileSampleIndexes.get(b))){
+					return -1;
+				}
+				else{
+					return 1;
+				}
+			} catch(e){
+				return 0;
+			}
+		})
+		for(let tile of tileNames){
 			tilesListBox.add(new Option(tile,tile));
 		}
 		tilesListBox.addEventListener('change',()=>{
@@ -624,7 +639,8 @@ export class LabelerApp {
 	}
 
 	#updateShapesForTile(){
-		let self = this;
+		if(!this.#currentTile)
+			return;
 		let prev_count = this.#tileWiseFeatures.get(this.#currentTile).length;
 		if(prev_count!=this.#featureSource.shapes.length){
 			let newFeatures = [];
