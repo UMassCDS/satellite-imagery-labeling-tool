@@ -272,12 +272,20 @@ export class LabelerApp {
 					e.target.files[0].text().then(data=>{
 						self.#detectorCountsMap = new Map()
 						let lines  = data.split('\n')
+						let tileNames = []
 						for(let i = 1;i<lines.length;i++){
 							let pair = lines[i].split(',')
 							self.#detectorCountsMap.set(pair[0],parseInt(pair[1]));
+							tileNames.push(pair[0])
 						}
-						let detectorCountsArray = Array(lines.length-1).fill(0);
-						for(let tileAndCount in self.#detectorCountsMap){
+						tileNames.sort();
+						for(let idx=1;idx<tileNames.length;idx++){
+							let k = 10;
+							self.#tilesIndexInSortedOrder.set(tileNames[idx],idx-1);
+						}
+						let detectorCountsArray = Array(tileNames.length-1).fill(0);
+						for(let tileAndCount of self.#detectorCountsMap){
+							let k = 10;
 							detectorCountsArray[self.#tilesIndexInSortedOrder.get(tileAndCount[0])]=tileAndCount[1]
 						}
 						this.#discountRunner = new kDisCount(detectorCountsArray);
@@ -299,14 +307,12 @@ export class LabelerApp {
 		const loadLocalDataFiles = document.getElementById('loadLocalDataFile');
 		loadLocalDataFiles.onchange = async (e) => {
 			if (e.target.files && e.target.files.length > 0){
-				let tileNames = []
 				for (let file of e.target.files) {
 					if (file.name.toLowerCase().indexOf('.geojson') > -1) {
 						let data = await file.text()
 						try {
 							let parsed = JSON.parse(data)
 							let tileName = file.name.split('.')[0]
-							tileNames.push(tileName)
 							if(parsed.indexes && parsed.indexes.length>0){
 								self.#tileWiseFeatures.set(tileName,parsed.features);
 								self.#tileBoundaries.set(tileName,parsed.features[0].properties.tile_bbox);
@@ -317,11 +323,6 @@ export class LabelerApp {
 						}
 					}
 				};
-				tileNames.sort()
-				for(let idx=0;idx<tileNames.length;idx++){
-					let k = 10;
-					self.#tilesIndexInSortedOrder.set(tileNames[idx],idx);
-				}
 				self.#initTilesPanel();
 			}
 			else if (e.target.files && e.target.files.length > 0) {
@@ -404,7 +405,7 @@ export class LabelerApp {
 			document.getElementById('customImportBtn').style.display = 'none';
 		}
 
-		//Handle custom data importer
+		//Handle custom data
 		document.getElementById('customImportBtn').onclick = () => {
 			const server = self.config.properties.customDataService;
 
@@ -702,10 +703,10 @@ export class LabelerApp {
 		let newCounts = []
 		for(let tileAndCount of self.#tileWiseFeatures){
 			let newCount = tileAndCount[1].length;
-			if(newCount != self.#detectorCountsMap.get(tileAndCount[0])){
-				updatedIndices.push(self.#tilesIndexInSortedOrder.get(tileAndCount[0]))
-				newCounts.push(newCount)
-			}
+			//if(newCount != self.#detectorCountsMap.get(tileAndCount[0])){
+			updatedIndices.push(self.#tilesIndexInSortedOrder.get(tileAndCount[0]))
+			newCounts.push(newCount)
+			//}
 		}	
 		self.#discountRunner.load(updatedIndices,newCounts)
 		console.log(self.#discountRunner.estimate())

@@ -9,7 +9,7 @@ export default class kDisCount {
         this.g = g;
         const sum = g.reduce((a, b) => a + b, 0);
         this.q = g.map(x => x / sum);
-        this.regions = [Array.from({ length: g.length }, (_, idx) => [idx])]
+        this.regions = [Array.from({ length: g.length }, (_, idx) => idx)]
     }
 
 
@@ -19,7 +19,7 @@ export default class kDisCount {
         this.f = Array(this.g.length).fill(NaN);
         sampleIndexes.forEach((el, i) => {
             this.f[el] = trueCounts[i];
-            this.samples.push(i);
+            this.samples.push(el);
         });
     }
 
