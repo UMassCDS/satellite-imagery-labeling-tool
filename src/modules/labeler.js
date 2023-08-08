@@ -30,9 +30,11 @@ export class LabelerApp {
 	#tileBoundaries = new Map();
 	// Importance of each tile to be annotated. Lower the value higher the priority
 	#tileSamplePriorities = new Map();
+	#sampleIndexTilesMap = new Map();
 	#detectorCountsMap = null;
 	#discountRunner;
 	#tilesIndexInSortedOrder = new Map();
+	#samplesUpdatedCounts;
 	#currentTile = null;
 	#layerOptions = {
 		fadeDuration: 0,
@@ -307,6 +309,7 @@ export class LabelerApp {
 		const loadLocalDataFiles = document.getElementById('loadLocalDataFile');
 		loadLocalDataFiles.onchange = async (e) => {
 			if (e.target.files && e.target.files.length > 0){
+				let maxSampleIndex = -1
 				for (let file of e.target.files) {
 					if (file.name.toLowerCase().indexOf('.geojson') > -1) {
 						let data = await file.text()
@@ -317,12 +320,17 @@ export class LabelerApp {
 								self.#tileWiseFeatures.set(tileName,parsed.features);
 								self.#tileBoundaries.set(tileName,parsed.features[0].properties.tile_bbox);
 								self.#tileSamplePriorities.set(tileName,parsed.indexes)
+								for(let sampleIdx of parsed.indexes){
+									this.#sampleIndexTilesMap.set(sampleIdx,tileName)
+								}
+								maxSampleIndex = Math.max(maxSampleIndex,...parsed.indexes)
 							}
 						} catch (e) {
 							alert('Unable to load data file.');
 						}
 					}
 				};
+				this.#samplesUpdatedCounts = Array(maxSampleIndex+1).fill(NaN);
 				self.#initTilesPanel();
 			}
 			else if (e.target.files && e.target.files.length > 0) {
@@ -639,7 +647,7 @@ export class LabelerApp {
 		let tiles = [... self.#tileSamplePriorities.keys()]
 		tiles.sort((a,b)=>{
 			try{
-				if(Math.min(self.#tileSamplePriorities.get(a))<Math.min(self.#tileSamplePriorities.get(b))){
+				if(Math.min(...self.#tileSamplePriorities.get(a))<Math.min(...self.#tileSamplePriorities.get(b))){
 					return -1;
 				}
 				else{
@@ -689,6 +697,11 @@ export class LabelerApp {
 				newFeatures.push(shape.data);
 			}
 			this.#tileWiseFeatures.set(this.#currentTile,newFeatures)
+			this.#tileSamplePriorities	
+			for(let sampleIndex of this.#tileSamplePriorities.get(this.#currentTile)){
+				let k = 10;
+				this.#samplesUpdatedCounts[sampleIndex]=newFeatures.length;
+			}
 			this.#runAndUpdateDiscount()
 		}
 	}
@@ -699,16 +712,25 @@ export class LabelerApp {
 		let currentTile = tilesListBox.value
 		let count = this.#tileWiseFeatures.get(currentTile).length
 
-		let updatedIndices = []
+		let updatedTileIndices = []
 		let newCounts = []
-		for(let tileAndCount of self.#tileWiseFeatures){
-			let newCount = tileAndCount[1].length;
-			//if(newCount != self.#detectorCountsMap.get(tileAndCount[0])){
-			updatedIndices.push(self.#tilesIndexInSortedOrder.get(tileAndCount[0]))
-			newCounts.push(newCount)
-			//}
-		}	
-		self.#discountRunner.load(updatedIndices,newCounts)
+
+		let totalSamples = this.#samplesUpdatedCounts.length
+		let idx = 0;
+		while(idx<totalSamples && !isNaN(this.#samplesUpdatedCounts[idx])){
+			updatedTileIndices.push(self.#tilesIndexInSortedOrder.get(this.#sampleIndexTilesMap.get(idx)));
+			newCounts.push(this.#samplesUpdatedCounts[idx])
+			idx++;
+		}
+
+		// for(let tileAndCount of self.#tileWiseFeatures){
+		// 	let newCount = tileAndCount[1].length;
+		// 	//if(newCount != self.#detectorCountsMap.get(tileAndCount[0])){
+		// 	updatedIndices.push(self.#tilesIndexInSortedOrder.get(tileAndCount[0]))
+		// 	newCounts.push(newCount)
+		// 	//}
+		// }	
+		self.#discountRunner.load(updatedTileIndices,newCounts)
 		console.log(self.#discountRunner.estimate())
 
 		document.querySelector('#appSubtitle').innerHTML = "Discount Count : "+count;
