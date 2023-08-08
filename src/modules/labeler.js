@@ -731,9 +731,9 @@ export class LabelerApp {
 		// 	//}
 		// }	
 		self.#discountRunner.load(updatedTileIndices,newCounts)
-		console.log(self.#discountRunner.estimate())
+		let disCountResults = self.#discountRunner.estimate()
 
-		document.querySelector('#appSubtitle').innerHTML = "Discount Count : "+count;
+		document.querySelector('#appSubtitle').innerHTML = "Discount :  Tile - "+count+" | Global - "+disCountResults.fHat +" | CI - "+disCountResults.cI;
 	}
 
 	/** Initializes the save panel. */
