@@ -6,6 +6,7 @@ import { AnnotationClassControl, SearchBarControl, SimpleContentControl, SimpleL
 import { AddLayerDialog,AddTiffDialog } from './controls/dialogs.js';
 import { Flyout, Navbar } from './controls/layoutControls.js';
 import { Utils } from './utils.js';
+import kDisCount from './discount.js';
 
 
 /** The main logic for the spatial annotation labeler app. */
@@ -27,8 +28,11 @@ export class LabelerApp {
 	#tiffDialog;
 	#tileWiseFeatures;
 	#tileBoundaries = new Map();
-	#tileSampleIndexes = new Map();
-	#detectorCounts = null;
+	// Importance of each tile to be annotated. Lower the value higher the priority
+	#tileSamplePriorities = new Map();
+	#detectorCountsMap = null;
+	#discountRunner;
+	#tilesIndexInSortedOrder = new Map();
 	#currentTile = null;
 	#layerOptions = {
 		fadeDuration: 0,
@@ -261,27 +265,63 @@ export class LabelerApp {
 			loadLocalTaskFile.click();
 		};
 
+		const detectorCountsFile = document.getElementById('loadDetectorCountsFile');
+		detectorCountsFile.onchange = async(e)=>{
+			if (e.target.files && e.target.files.length > 0){
+				try{
+					e.target.files[0].text().then(data=>{
+						self.#detectorCountsMap = new Map()
+						let lines  = data.split('\n')
+						for(let i = 1;i<lines.length;i++){
+							let pair = lines[i].split(',')
+							self.#detectorCountsMap.set(pair[0],parseInt(pair[1]));
+						}
+						let detectorCountsArray = Array(lines.length-1).fill(0);
+						for(let tileAndCount in self.#detectorCountsMap){
+							detectorCountsArray[self.#tilesIndexInSortedOrder.get(tileAndCount[0])]=tileAndCount[1]
+						}
+						this.#discountRunner = new kDisCount(detectorCountsArray);
+					})
+				} catch{
+					alert('Failed to load counts csv');
+				}
+			};
+		}
+
+		//Click event for a button to load detector counts data file.
+		document.getElementById('loadDetectorCounts').onclick = () => {
+			self.#popup.close();
+			detectorCountsFile.click();
+			self.flyout.hide();
+		};
+
 		//File input for local data.
 		const loadLocalDataFiles = document.getElementById('loadLocalDataFile');
 		loadLocalDataFiles.onchange = async (e) => {
 			if (e.target.files && e.target.files.length > 0){
+				let tileNames = []
 				for (let file of e.target.files) {
 					if (file.name.toLowerCase().indexOf('.geojson') > -1) {
 						let data = await file.text()
-
 						try {
 							let parsed = JSON.parse(data)
 							let tileName = file.name.split('.')[0]
-							self.#tileWiseFeatures.set(tileName,parsed.features);
-							self.#detectorCounts = parsed['detectorCounts']
-							self.#tileBoundaries.set(tileName,parsed.features[0].properties.tile_bbox);
-							if(parsed.indexes && parsed.indexes.length>0)
-								self.#tileSampleIndexes.set(tileName,parsed.indexes)
+							tileNames.push(tileName)
+							if(parsed.indexes && parsed.indexes.length>0){
+								self.#tileWiseFeatures.set(tileName,parsed.features);
+								self.#tileBoundaries.set(tileName,parsed.features[0].properties.tile_bbox);
+								self.#tileSamplePriorities.set(tileName,parsed.indexes)
+							}
 						} catch (e) {
 							alert('Unable to load data file.');
 						}
 					}
 				};
+				tileNames.sort()
+				for(let idx=0;idx<tileNames.length;idx++){
+					let k = 10;
+					self.#tilesIndexInSortedOrder.set(tileNames[idx],idx);
+				}
 				self.#initTilesPanel();
 			}
 			else if (e.target.files && e.target.files.length > 0) {
@@ -595,10 +635,10 @@ export class LabelerApp {
 	#initTilesPanel() {
 		const self = this;
 		let tilesListBox = document.getElementById('TilesList')
-		let tileNames = [... self.#tileSampleIndexes.keys()]
-		tileNames.sort((a,b)=>{
+		let tiles = [... self.#tileSamplePriorities.keys()]
+		tiles.sort((a,b)=>{
 			try{
-				if(Math.min(self.#tileSampleIndexes.get(a))<Math.min(self.#tileSampleIndexes.get(b))){
+				if(Math.min(self.#tileSamplePriorities.get(a))<Math.min(self.#tileSamplePriorities.get(b))){
 					return -1;
 				}
 				else{
@@ -608,7 +648,7 @@ export class LabelerApp {
 				return 0;
 			}
 		})
-		for(let tile of tileNames){
+		for(let tile of tiles){
 			tilesListBox.add(new Option(tile,tile));
 		}
 		tilesListBox.addEventListener('change',()=>{
@@ -653,10 +693,22 @@ export class LabelerApp {
 	}
 
 	#runAndUpdateDiscount(){
+		let self = this;
 		let tilesListBox = document.getElementById('TilesList')
 		let currentTile = tilesListBox.value
 		let count = this.#tileWiseFeatures.get(currentTile).length
 
+		let updatedIndices = []
+		let newCounts = []
+		for(let tileAndCount of self.#tileWiseFeatures){
+			let newCount = tileAndCount[1].length;
+			if(newCount != self.#detectorCountsMap.get(tileAndCount[0])){
+				updatedIndices.push(self.#tilesIndexInSortedOrder.get(tileAndCount[0]))
+				newCounts.push(newCount)
+			}
+		}	
+		self.#discountRunner.load(updatedIndices,newCounts)
+		console.log(self.#discountRunner.estimate())
 
 		document.querySelector('#appSubtitle').innerHTML = "Discount Count : "+count;
 	}
