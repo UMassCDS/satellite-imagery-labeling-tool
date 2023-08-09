@@ -34,6 +34,7 @@ export class LabelerApp {
 	#detectorCountsMap = null;
 	#discountRunner;
 	#tilesIndexInSortedOrder = new Map();
+	#markedCompletedTiles = new Map()
 	#samplesUpdatedCounts;
 	#currentTile = null;
 	#layerOptions = {
@@ -645,7 +646,18 @@ export class LabelerApp {
 		const self = this;
 		let tilesListBox = document.getElementById('TilesList')
 		let tiles = [... self.#tileSamplePriorities.keys()]
-		tiles.sort((a,b)=>{
+		let incompleteTiles = []
+		let completeTiles = []
+		tilesListBox.innerHTML = "";
+		for(let tile of tiles){
+			if(self.#markedCompletedTiles.has(tile) && self.#markedCompletedTiles.get(tile)==true){
+				completeTiles.push(tile);
+			}
+			else{
+				incompleteTiles.push(tile);
+			}
+		}
+		let compFunction = (a,b)=>{
 			try{
 				if(Math.min(...self.#tileSamplePriorities.get(a))<Math.min(...self.#tileSamplePriorities.get(b))){
 					return -1;
@@ -656,9 +668,17 @@ export class LabelerApp {
 			} catch(e){
 				return 0;
 			}
-		})
-		for(let tile of tiles){
+		}
+		incompleteTiles.sort(compFunction);
+		completeTiles.sort(compFunction);
+
+		for(let tile of incompleteTiles){
 			tilesListBox.add(new Option(tile,tile));
+		}
+		for(let tile of completeTiles){
+			let option = new Option(tile,tile);
+			option.style.background = 'gray'
+			tilesListBox.add(option);
 		}
 		tilesListBox.addEventListener('change',()=>{
 			self.#refreshTileSelection();
@@ -723,13 +743,6 @@ export class LabelerApp {
 			idx++;
 		}
 
-		// for(let tileAndCount of self.#tileWiseFeatures){
-		// 	let newCount = tileAndCount[1].length;
-		// 	//if(newCount != self.#detectorCountsMap.get(tileAndCount[0])){
-		// 	updatedIndices.push(self.#tilesIndexInSortedOrder.get(tileAndCount[0]))
-		// 	newCounts.push(newCount)
-		// 	//}
-		// }	
 		self.#discountRunner.load(updatedTileIndices,newCounts)
 		let disCountResults = self.#discountRunner.estimate()
 
@@ -1141,6 +1154,14 @@ export class LabelerApp {
 				self.#lastEdittedShape = shapeCopy;
 			}
 		});
+
+		// Callback for marking a tile complete for DISCount
+		let markCompleteButton = document.getElementById('MarkTileComplete')
+		markCompleteButton.onclick = ()=>{
+			let currentTile=self.#currentTile;
+			self.#markedCompletedTiles.set(currentTile,true)
+			self.#initTilesPanel();
+		}
 
 		//Monitor for when drawing has been completed.
 		map.events.add('drawingcomplete', dm, (e) => {
