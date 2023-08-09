@@ -712,18 +712,21 @@ export class LabelerApp {
 			return;
 		let prev_count = this.#tileWiseFeatures.get(this.#currentTile).length;
 		if(prev_count!=this.#featureSource.shapes.length){
-			let newFeatures = [];
-			for(let shape of this.#featureSource.shapes){
-				newFeatures.push(shape.data);
-			}
-			this.#tileWiseFeatures.set(this.#currentTile,newFeatures)
-			this.#tileSamplePriorities	
-			for(let sampleIndex of this.#tileSamplePriorities.get(this.#currentTile)){
-				let k = 10;
-				this.#samplesUpdatedCounts[sampleIndex]=newFeatures.length;
-			}
-			this.#runAndUpdateDiscount()
+			this.#processCurrentPolygonsForTile();
 		}
+	}
+	#processCurrentPolygonsForTile(){
+		let newFeatures = [];
+		for(let shape of this.#featureSource.shapes){
+			newFeatures.push(shape.data);
+		}
+		this.#tileWiseFeatures.set(this.#currentTile,newFeatures)
+		this.#tileSamplePriorities	
+		for(let sampleIndex of this.#tileSamplePriorities.get(this.#currentTile)){
+			let k = 10;
+			this.#samplesUpdatedCounts[sampleIndex]=newFeatures.length;
+		}
+		this.#runAndUpdateDiscount()
 	}
 
 	#runAndUpdateDiscount(){
@@ -1160,6 +1163,7 @@ export class LabelerApp {
 		markCompleteButton.onclick = ()=>{
 			let currentTile=self.#currentTile;
 			self.#markedCompletedTiles.set(currentTile,true)
+			self.#processCurrentPolygonsForTile();
 			self.#initTilesPanel();
 		}
 
