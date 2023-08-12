@@ -7,6 +7,7 @@ import { AddLayerDialog,AddTiffDialog } from './controls/dialogs.js';
 import { Flyout, Navbar } from './controls/layoutControls.js';
 import { Utils } from './utils.js';
 import kDisCount from './discount.js';
+import TileManager from './TileManager.js';
 
 
 /** The main logic for the spatial annotation labeler app. */
@@ -26,16 +27,8 @@ export class LabelerApp {
 	#statsControl;
 	#layerDialog;
 	#tiffDialog;
-	#tileWiseFeatures;
-	#tileBoundaries = new Map();
-	// Importance of each tile to be annotated. Lower the value higher the priority
-	#tileSamplePriorities = new Map();
-	#sampleIndexTilesMap = new Map();
-	#detectorCountsMap = null;
+	#tileManager;
 	#discountRunner;
-	#tilesIndexInSortedOrder = new Map();
-	#markedCompletedTiles = new Map()
-	#samplesUpdatedCounts;
 	#currentTile = null;
 	#layerOptions = {
 		fadeDuration: 0,
@@ -143,6 +136,8 @@ export class LabelerApp {
 			name: appSettings.autoSave.name
 		});
 
+		self.#tileManager = new TileManager();
+
 		self.#initSettingsPanel();
 
 		const hasAZMapAuth = Utils.isAzureMapsAuthValid(mapSettings.azureMapsAuth);
@@ -216,7 +211,6 @@ export class LabelerApp {
 
 		document.getElementById('app-theme').onchange = self.#themeColorChanged;
 
-		self.#tileWiseFeatures = new Map()
 		//Initialized the flyout panels.
 		self.#initLoadPanel();
 		self.#initLayerPanel();
@@ -270,29 +264,11 @@ export class LabelerApp {
 
 		const detectorCountsFile = document.getElementById('loadDetectorCountsFile');
 		detectorCountsFile.onchange = async(e)=>{
+			const self = this;
 			if (e.target.files && e.target.files.length > 0){
 				try{
-					e.target.files[0].text().then(data=>{
-						self.#detectorCountsMap = new Map()
-						let lines  = data.split('\n')
-						let tileNames = []
-						for(let i = 1;i<lines.length;i++){
-							let pair = lines[i].split(',')
-							self.#detectorCountsMap.set(pair[0],parseInt(pair[1]));
-							tileNames.push(pair[0])
-						}
-						tileNames.sort();
-						for(let idx=1;idx<tileNames.length;idx++){
-							let k = 10;
-							self.#tilesIndexInSortedOrder.set(tileNames[idx],idx-1);
-						}
-						let detectorCountsArray = Array(tileNames.length-1).fill(0);
-						for(let tileAndCount of self.#detectorCountsMap){
-							let k = 10;
-							detectorCountsArray[self.#tilesIndexInSortedOrder.get(tileAndCount[0])]=tileAndCount[1]
-						}
-						this.#discountRunner = new kDisCount(detectorCountsArray);
-					})
+					let detectorCountsArray = await self.#tileManager.loadDetectorCountsFile(e.target.files[0]);
+					self.#discountRunner = new kDisCount(detectorCountsArray);
 				} catch{
 					alert('Failed to load counts csv');
 				}
@@ -310,28 +286,7 @@ export class LabelerApp {
 		const loadLocalDataFiles = document.getElementById('loadLocalDataFile');
 		loadLocalDataFiles.onchange = async (e) => {
 			if (e.target.files && e.target.files.length > 0){
-				let maxSampleIndex = -1
-				for (let file of e.target.files) {
-					if (file.name.toLowerCase().indexOf('.geojson') > -1) {
-						let data = await file.text()
-						try {
-							let parsed = JSON.parse(data)
-							let tileName = file.name.split('.')[0]
-							if(parsed.indexes && parsed.indexes.length>0){
-								self.#tileWiseFeatures.set(tileName,parsed.features);
-								self.#tileBoundaries.set(tileName,parsed.features[0].properties.tile_bbox);
-								self.#tileSamplePriorities.set(tileName,parsed.indexes)
-								for(let sampleIdx of parsed.indexes){
-									this.#sampleIndexTilesMap.set(sampleIdx,tileName)
-								}
-								maxSampleIndex = Math.max(maxSampleIndex,...parsed.indexes)
-							}
-						} catch (e) {
-							alert('Unable to load data file.');
-						}
-					}
-				};
-				this.#samplesUpdatedCounts = Array(maxSampleIndex+1).fill(NaN);
+				await self.#tileManager.loadTilesFromFiles(e.target.files);
 				self.#initTilesPanel();
 			}
 			else if (e.target.files && e.target.files.length > 0) {
@@ -645,33 +600,8 @@ export class LabelerApp {
 	#initTilesPanel() {
 		const self = this;
 		let tilesListBox = document.getElementById('TilesList')
-		let tiles = [... self.#tileSamplePriorities.keys()]
-		let incompleteTiles = []
-		let completeTiles = []
+		let [incompleteTiles,completeTiles] = this.#tileManager.getMarkedAndUnmarkedTiles();
 		tilesListBox.innerHTML = "";
-		for(let tile of tiles){
-			if(self.#markedCompletedTiles.has(tile) && self.#markedCompletedTiles.get(tile)==true){
-				completeTiles.push(tile);
-			}
-			else{
-				incompleteTiles.push(tile);
-			}
-		}
-		let compFunction = (a,b)=>{
-			try{
-				if(Math.min(...self.#tileSamplePriorities.get(a))<Math.min(...self.#tileSamplePriorities.get(b))){
-					return -1;
-				}
-				else{
-					return 1;
-				}
-			} catch(e){
-				return 0;
-			}
-		}
-		incompleteTiles.sort(compFunction);
-		completeTiles.sort(compFunction);
-
 		for(let tile of incompleteTiles){
 			tilesListBox.add(new Option(tile,tile));
 		}
@@ -690,7 +620,7 @@ export class LabelerApp {
 		try{
 			let tilesListBox = document.getElementById('TilesList')
 			let currentTile = tilesListBox.value
-			let boundaries = this.#tileBoundaries.get(tilesListBox.value).split(',').map(parseFloat)
+			let boundaries = this.#tileManager.getTileBoundaries(currentTile);
 			let bbox = atlas.data.BoundingBox(boundaries);
 			// Set the camera
 			this.map.setCamera({	
@@ -700,7 +630,7 @@ export class LabelerApp {
 			});
 			this.#currentTile = currentTile
 			this.#featureSource.clear()
-			this.#importFeatures(this.#tileWiseFeatures.get(currentTile),'TileFeatures',false,true)
+			this.#importFeatures(this.#tileManager.getTileFeatures(currentTile),'TileFeatures',false,true)
 			this.#runAndUpdateDiscount()
 		} catch(e){
 			console.log(e)
@@ -710,46 +640,21 @@ export class LabelerApp {
 	#updateShapesForTile(){
 		if(!this.#currentTile)
 			return;
-		let prev_count = this.#tileWiseFeatures.get(this.#currentTile).length;
+		let prev_count = this.#tileManager.getTileFeatures(this.#currentTile).length;
 		if(prev_count!=this.#featureSource.shapes.length){
 			this.#processCurrentPolygonsForTile();
 		}
 	}
 	#processCurrentPolygonsForTile(){
-		let newFeatures = [];
-		for(let shape of this.#featureSource.shapes){
-			newFeatures.push(shape.data);
-		}
-		this.#tileWiseFeatures.set(this.#currentTile,newFeatures)
-		this.#tileSamplePriorities	
-		for(let sampleIndex of this.#tileSamplePriorities.get(this.#currentTile)){
-			let k = 10;
-			this.#samplesUpdatedCounts[sampleIndex]=newFeatures.length;
-		}
+		this.#tileManager.markTileComplete(this.#currentTile,this.#featureSource.shapes)
 		this.#runAndUpdateDiscount()
 	}
 
 	#runAndUpdateDiscount(){
-		let self = this;
-		let tilesListBox = document.getElementById('TilesList')
-		let currentTile = tilesListBox.value
-		let count = this.#tileWiseFeatures.get(currentTile).length
-
-		let updatedTileIndices = []
-		let newCounts = []
-
-		let totalSamples = this.#samplesUpdatedCounts.length
-		let idx = 0;
-		while(idx<totalSamples && !isNaN(this.#samplesUpdatedCounts[idx])){
-			updatedTileIndices.push(self.#tilesIndexInSortedOrder.get(this.#sampleIndexTilesMap.get(idx)));
-			newCounts.push(this.#samplesUpdatedCounts[idx])
-			idx++;
-		}
-
-		self.#discountRunner.load(updatedTileIndices,newCounts)
-		let disCountResults = self.#discountRunner.estimate()
-
-		document.querySelector('#appSubtitle').innerHTML = "Discount :  Tile - "+count+" | Global - "+disCountResults.fHat +" | CI - "+disCountResults.cI;
+		this.#discountRunner.load(...this.#tileManager.getUpdatedTileIndicesAndCounts());
+		let disCountResults = this.#discountRunner.estimate()
+		let currTileCount = this.#tileManager.getTileFeatures(this.#currentTile).length;
+		document.querySelector('#appSubtitle').innerHTML = "Discount :  Tile - "+currTileCount+" | Global - "+disCountResults.fHat +" | CI - "+disCountResults.cI;
 	}
 
 	/** Initializes the save panel. */
@@ -1161,8 +1066,6 @@ export class LabelerApp {
 		// Callback for marking a tile complete for DISCount
 		let markCompleteButton = document.getElementById('MarkTileComplete')
 		markCompleteButton.onclick = ()=>{
-			let currentTile=self.#currentTile;
-			self.#markedCompletedTiles.set(currentTile,true)
 			self.#processCurrentPolygonsForTile();
 			self.#initTilesPanel();
 		}
