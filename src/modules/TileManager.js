@@ -6,7 +6,7 @@ export default class TileManager {
         this.sampleIndexTilesMap = new Map();
         this.detectorCountsMap = null;
         this.tilesIndexInDetectionsArray = new Map();
-        this.samplesUpdatedCounts;
+        this.samplesTrueCounts;
         this.tileInfo = new Map();
         this.annotationsFileLoaded = false;
     }
@@ -63,7 +63,16 @@ export default class TileManager {
                 }
             }
         };
-        this.samplesUpdatedCounts = Array(maxSampleIndex+1).fill(NaN);
+        this.samplesTrueCounts = Array(maxSampleIndex+1).fill(NaN);
+        // Initialize the already annotated tiles
+        for(let tile of this.tileInfo.values()){
+            if(tile.annotated==true && tile.indexes!=null){
+                for(let sampleIdx of tile.indexes){
+                    this.samplesTrueCounts[sampleIdx]=tile.features.length;
+                }
+            }
+        }
+        
         return true;
     }
 
@@ -83,18 +92,18 @@ export default class TileManager {
 		}
         this.tileInfo.get(tile).features=newFeatures;
 		for(let sampleIndex of this.tileInfo.get(tile).indexes){
-			this.samplesUpdatedCounts[sampleIndex]=newFeatures.length;
+			this.samplesTrueCounts[sampleIndex]=newFeatures.length;
 		}
     }
 
     getUpdatedTileIndicesAndCounts(){
         let updatedTileIndices = []
 		let newCounts = []
-        let totalSamples = this.samplesUpdatedCounts.length
+        let totalSamples = this.samplesTrueCounts.length
 		let idx = 0;
-		while(idx<totalSamples && !isNaN(this.samplesUpdatedCounts[idx])){
+		while(idx<totalSamples && !isNaN(this.samplesTrueCounts[idx])){
 			updatedTileIndices.push(this.tilesIndexInDetectionsArray.get(this.sampleIndexTilesMap.get(idx)));
-			newCounts.push(this.samplesUpdatedCounts[idx])
+			newCounts.push(this.samplesTrueCounts[idx])
 			idx++;
 		}
         return [updatedTileIndices,newCounts];

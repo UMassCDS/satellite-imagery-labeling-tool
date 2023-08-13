@@ -658,7 +658,7 @@ export class LabelerApp {
 		this.#discountRunner.load(...this.#tileManager.getUpdatedTileIndicesAndCounts());
 		let disCountResults = this.#discountRunner.estimate()
 		let currTileCount = this.#tileManager.getTileFeatures(this.#currentTile).length;
-		document.querySelector('#appSubtitle').innerHTML = "Discount :  Tile - "+currTileCount+" | Global - "+disCountResults.fHat +" | CI - "+disCountResults.cI;
+		document.querySelector('#appSubtitle').innerHTML = "Discount :  Tile - "+currTileCount+" | Global Estimate - "+Math.round(disCountResults.fHat) +" | CI - "+Math.round(disCountResults.cI);
 	}
 
 	/** Initializes the save panel. */
