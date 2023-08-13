@@ -1074,6 +1074,11 @@ export class LabelerApp {
 			self.#initTilesPanel();
 		}
 
+		let saveTilesButton = document.getElementById('SaveTiles')
+		saveTilesButton.onclick = ()=>{
+			self.#tileManager.saveTilesZip()
+		}
+
 		//Monitor for when drawing has been completed.
 		map.events.add('drawingcomplete', dm, (e) => {
 			self.#drawingComplete(e);

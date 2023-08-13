@@ -1,3 +1,4 @@
+import { Utils } from './utils.js';
 export default class TileManager {
 
     // g is a list of detector counts, eps is a small number to avoid zero division errors
@@ -84,16 +85,32 @@ export default class TileManager {
         return this.tileBoundaries.get(tile).split(',').map(parseFloat);
     }
 
-    markTileComplete(tile, newShapes){
-        this.tileInfo.get(tile).annotated = true;
+    markTileComplete(tileName, newShapes){
+        let tile = this.tileInfo.get(tileName)
+        tile.annotated = true;
         let newFeatures = [];
 		for(let shape of newShapes){
+            let feature = shape.data
+            feature.tile_bbox = this.tileBoundaries.get(tileName);
 			newFeatures.push(shape.data);
 		}
-        this.tileInfo.get(tile).features=newFeatures;
-		for(let sampleIndex of this.tileInfo.get(tile).indexes){
+        tile.features=newFeatures;
+        tile.true_count = tile.features.length
+		for(let sampleIndex of this.tileInfo.get(tileName).indexes){
 			this.samplesTrueCounts[sampleIndex]=newFeatures.length;
 		}
+    }
+
+    saveTilesZip(){
+        var zip = new JSZip();
+
+        for(let kv of this.tileInfo){
+            let [tileName,tileDetails] = kv;
+            zip.file(tileName+".geojson",JSON.stringify(tileDetails))
+        }
+        zip.generateAsync({type:"blob"}).then((outputBlob)=>{
+            Utils.saveFile("tiles.zip", outputBlob);
+        });
     }
 
     getUpdatedTileIndicesAndCounts(){
