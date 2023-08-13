@@ -3,15 +3,12 @@ export default class TileManager {
     // g is a list of detector counts, eps is a small number to avoid zero division errors
     constructor() {
         this.TileFeatures = []
-        this.tileWiseFeatures = new Map();
         this.tileBoundaries = new Map();
-        //Importance of each tile to be annotated. Lower the value higher the priority
-        this.tileSamplePriorities = new Map();
         this.sampleIndexTilesMap = new Map();
         this.detectorCountsMap = null;
         this.tilesIndexInSortedOrder = new Map();
-        this.markedCompletedTiles = new Map()
         this.samplesUpdatedCounts;
+        this.tileInfo = new Map();
     }
 
     async loadDetectorCountsFile(file){
@@ -49,10 +46,9 @@ export default class TileManager {
                     let data = await file.text()
                     let parsed = JSON.parse(data)
                     let tileName = file.name.split('.')[0]
+                    this.tileInfo.set(tileName,parsed);
                     if(parsed.indexes && parsed.indexes.length>0){
-                        this.tileWiseFeatures.set(tileName,parsed.features);
                         this.tileBoundaries.set(tileName,parsed.features[0].properties.tile_bbox);
-                        this.tileSamplePriorities.set(tileName,parsed.indexes)
                         for(let sampleIdx of parsed.indexes){
                             this.sampleIndexTilesMap.set(sampleIdx,tileName)
                         }
@@ -67,7 +63,7 @@ export default class TileManager {
     }
 
     getTileFeatures(tile){
-        return this.tileWiseFeatures.get(tile);
+        return this.tileInfo.get(tile).features;
     }
 
     getTileBoundaries(tile){
@@ -75,13 +71,13 @@ export default class TileManager {
     }
 
     markTileComplete(tile, newShapes){
-        this.markedCompletedTiles.set(tile,true);
+        this.tileInfo.get(tile).annotated = true;
         let newFeatures = [];
 		for(let shape of newShapes){
 			newFeatures.push(shape.data);
 		}
-		this.tileWiseFeatures.set(tile,newFeatures)
-		for(let sampleIndex of this.tileSamplePriorities.get(tile)){
+        this.tileInfo.get(tile).features=newFeatures;
+		for(let sampleIndex of this.tileInfo.get(tile).indexes){
 			this.samplesUpdatedCounts[sampleIndex]=newFeatures.length;
 		}
     }
@@ -100,11 +96,11 @@ export default class TileManager {
     }
 
     getMarkedAndUnmarkedTiles(){
-        let tiles = [... this.tileSamplePriorities.keys()]
+        let tiles = [... this.tileBoundaries.keys()]
         let incompleteTiles = []
 		let completeTiles = []
         for(let tile of tiles){
-			if(this.markedCompletedTiles.has(tile) && this.markedCompletedTiles.get(tile)==true){
+			if(this.tileInfo.get(tile).annotated){
 				completeTiles.push(tile);
 			}
 			else{
@@ -113,7 +109,7 @@ export default class TileManager {
 		}
         let compFunction = (a,b)=>{
 			try{
-				if(Math.min(...this.tileSamplePriorities.get(a))<Math.min(...this.tileSamplePriorities.get(b))){
+				if(Math.min(...this.tileInfo.get(a).indexes)<Math.min(...this.tileInfo.get(b).indexes)){
 					return -1;
 				}
 				else{
