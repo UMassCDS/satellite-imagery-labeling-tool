@@ -69,7 +69,7 @@ export default class TileManager {
         for(let tile of this.tileInfo.values()){
             if(tile.annotated==true && tile.indexes!=null){
                 for(let sampleIdx of tile.indexes){
-                    this.samplesTrueCounts[sampleIdx]=tile.features.length;
+                    this.samplesTrueCounts[sampleIdx]=tile.true_count;
                 }
             }
         }
