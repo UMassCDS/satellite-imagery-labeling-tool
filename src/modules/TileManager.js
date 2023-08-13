@@ -5,7 +5,7 @@ export default class TileManager {
         this.tileBoundaries = new Map();
         this.sampleIndexTilesMap = new Map();
         this.detectorCountsMap = null;
-        this.tilesIndexInSortedOrder = new Map();
+        this.tilesIndexInDetectionsArray = new Map();
         this.samplesUpdatedCounts;
         this.tileInfo = new Map();
         this.annotationsFileLoaded = false;
@@ -17,21 +17,19 @@ export default class TileManager {
 
             this.detectorCountsMap = new Map()
             let lines  = data.split('\n')
-            let tileNames = []
+            let detectorCountsArray = [];
             for(let i = 1;i<lines.length;i++){
+                // first line is the titles of columns. Hence i starts from 1
                 let pair = lines[i].split(',')
-                this.detectorCountsMap.set(pair[0],parseInt(pair[1]));
-                tileNames.push(pair[0])
+                if(pair.length>=2){
+                    // sometimes last line is just a new line character.
+                    // Therefore this if condition.
+                    let tileName = pair[0];let detectionCount = parseInt(pair[1])
+                    this.detectorCountsMap.set(tileName,detectionCount);
+                    detectorCountsArray.push(detectionCount);
+                    this.tilesIndexInDetectionsArray.set(tileName,i-1)
+                }
             }
-            tileNames.sort();
-            for(let idx=1;idx<tileNames.length;idx++){
-                this.tilesIndexInSortedOrder.set(tileNames[idx],idx-1);
-            }
-            let detectorCountsArray = Array(tileNames.length-1).fill(0);
-            for(let tileAndCount of this.detectorCountsMap){
-                detectorCountsArray[this.tilesIndexInSortedOrder.get(tileAndCount[0])]=tileAndCount[1]
-            }
-            
             this.annotationsFileLoaded = true;
             return detectorCountsArray;
 
@@ -95,7 +93,7 @@ export default class TileManager {
         let totalSamples = this.samplesUpdatedCounts.length
 		let idx = 0;
 		while(idx<totalSamples && !isNaN(this.samplesUpdatedCounts[idx])){
-			updatedTileIndices.push(this.tilesIndexInSortedOrder.get(this.sampleIndexTilesMap.get(idx)));
+			updatedTileIndices.push(this.tilesIndexInDetectionsArray.get(this.sampleIndexTilesMap.get(idx)));
 			newCounts.push(this.samplesUpdatedCounts[idx])
 			idx++;
 		}
