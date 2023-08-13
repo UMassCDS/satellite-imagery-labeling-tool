@@ -286,7 +286,11 @@ export class LabelerApp {
 		const loadLocalDataFiles = document.getElementById('loadLocalDataFile');
 		loadLocalDataFiles.onchange = async (e) => {
 			if (e.target.files && e.target.files.length > 0){
-				await self.#tileManager.loadTilesFromFiles(e.target.files);
+				let loaded = await self.#tileManager.loadTilesFromFiles(e.target.files);
+				if(!loaded){
+					loadLocalDataFiles.value = null;
+					return;
+				}
 				self.#initTilesPanel();
 			}
 			else if (e.target.files && e.target.files.length > 0) {

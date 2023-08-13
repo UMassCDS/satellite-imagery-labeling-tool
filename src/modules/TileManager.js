@@ -2,13 +2,13 @@ export default class TileManager {
 
     // g is a list of detector counts, eps is a small number to avoid zero division errors
     constructor() {
-        this.TileFeatures = []
         this.tileBoundaries = new Map();
         this.sampleIndexTilesMap = new Map();
         this.detectorCountsMap = null;
         this.tilesIndexInSortedOrder = new Map();
         this.samplesUpdatedCounts;
         this.tileInfo = new Map();
+        this.annotationsFileLoaded = false;
     }
 
     async loadDetectorCountsFile(file){
@@ -31,6 +31,8 @@ export default class TileManager {
             for(let tileAndCount of this.detectorCountsMap){
                 detectorCountsArray[this.tilesIndexInSortedOrder.get(tileAndCount[0])]=tileAndCount[1]
             }
+            
+            this.annotationsFileLoaded = true;
             return detectorCountsArray;
 
         } catch{
@@ -39,6 +41,10 @@ export default class TileManager {
     }
 
     async loadTilesFromFiles(files){
+        if(!this.annotationsFileLoaded){
+            alert('Annotations csv not loaded');
+            return false;
+        }
         let maxSampleIndex = -1
         for (let file of files) {
             if (file.name.toLowerCase().indexOf('.geojson') > -1) {
@@ -60,6 +66,7 @@ export default class TileManager {
             }
         };
         this.samplesUpdatedCounts = Array(maxSampleIndex+1).fill(NaN);
+        return true;
     }
 
     getTileFeatures(tile){
