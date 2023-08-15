@@ -53,7 +53,7 @@ export default class TileManager {
                     let tileName = file.name.split('.')[0]
                     this.tileInfo.set(tileName,parsed);
                     if(parsed.indexes && parsed.indexes.length>0){
-                        this.tileBoundaries.set(tileName,parsed.features[0].properties.tile_bbox);
+                        this.tileBoundaries.set(tileName,parsed.tile_bbox);
                         for(let sampleIdx of parsed.indexes){
                             this.sampleIndexTilesMap.set(sampleIdx,tileName)
                         }
@@ -79,6 +79,10 @@ export default class TileManager {
 
     getTileFeatures(tile){
         return this.tileInfo.get(tile).features;
+    }
+
+    getPrePostTiffUrls(tile){
+        return [this.tileInfo.get(tile).pre_tiff_url,this.tileInfo.get(tile).post_tiff_url]
     }
 
     getTileBoundaries(tile){

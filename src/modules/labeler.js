@@ -632,7 +632,10 @@ export class LabelerApp {
 				maxBounds: bbox,
 				padding: 100
 			});
-			this.#currentTile = currentTile
+			if(this.#currentTile !== currentTile){
+				this.#currentTile = currentTile
+				this.#updateTiffLayers(currentTile);
+			}
 			this.#featureSource.clear()
 			this.#importFeatures(this.#tileManager.getTileFeatures(currentTile),'TileFeatures',false,true)
 			this.#runAndUpdateDiscount()
@@ -659,6 +662,45 @@ export class LabelerApp {
 		let disCountResults = this.#discountRunner.estimate()
 		let currTileCount = this.#tileManager.getTileFeatures(this.#currentTile).length;
 		document.querySelector('#appSubtitle').innerHTML = "Discount :  Tile - "+currTileCount+" | Global Estimate - "+Math.round(disCountResults.fHat) +" | CI - "+Math.round(disCountResults.cI);
+	}
+
+	#updateTiffLayers(tileName){
+		const self = this;
+		let [preUrl,postUrl] = this.#tileManager.getPrePostTiffUrls(tileName);
+		preUrl = 'http://localhost:8888/cog/tiles/{z}/{x}/{y}.jpg?url=' + preUrl;
+		postUrl = 'http://localhost:8888/cog/tiles/{z}/{x}/{y}.jpg?url=' + postUrl;
+		let preAdded = false,postAdded = false;
+		let preOptions = {
+            type: 'TileLayer',
+            tileUrl: preUrl,
+            tileSize: 256,
+            enabled: true
+        };
+		let postOptions = {
+            type: 'TileLayer',
+            tileUrl: postUrl,
+            tileSize: 256,
+            enabled: true
+        };
+		for(let idx in self.#baselayers){
+			let layer = self.#baselayers[idx];
+			if(layer.getId()==='pre'){
+				preAdded = true;
+				layer.setOptions(preOptions);
+			}
+			else if(layer.getId()==='post'){
+				postAdded = true;
+				layer.setOptions(postOptions);
+			}
+		}
+		let layersToAdd = {}
+		if(!preAdded) layersToAdd['pre'] = preOptions;
+		if(!postAdded) layersToAdd['post'] = postOptions;
+		this.#addLayers(layersToAdd);
+
+		// Move the tiff layers to the lowest z index
+		this.map.layers.move('post',0);
+		this.map.layers.move('pre',0);
 	}
 
 	/** Initializes the save panel. */
