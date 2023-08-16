@@ -279,12 +279,12 @@ export class LabelerApp {
 		document.getElementById('loadDetectorCounts').onclick = () => {
 			self.#popup.close();
 			detectorCountsFile.click();
-			self.flyout.hide();
 		};
 
-		//File input for local data.
-		const loadLocalDataFiles = document.getElementById('loadLocalDataFile');
-		loadLocalDataFiles.onchange = async (e) => {
+
+		//Tiles Geojson files for DISCount
+		const loadTileGeoJsonFiles = document.getElementById('loadTileGeoJsonFiles');
+		loadTileGeoJsons.onchange = async(e) => {
 			if (e.target.files && e.target.files.length > 0){
 				let loaded = await self.#tileManager.loadTilesFromFiles(e.target.files);
 				if(!loaded){
@@ -293,7 +293,17 @@ export class LabelerApp {
 				}
 				self.#initTilesPanel();
 			}
-			else if (e.target.files && e.target.files.length > 0) {
+		}
+		//Click event for a button to load tiles Geojson files.
+		document.getElementById('loadTileGeoJsons').onclick = () => {
+			self.#popup.close();
+			loadTileGeoJsonFiles.click();
+		};
+
+		//File input for local data.
+		const loadLocalDataFiles = document.getElementById('loadLocalDataFile');
+		loadLocalDataFiles.onchange = async (e) => {
+			if (e.target.files && e.target.files.length > 0) {
 				const file = e.target.files[0];
 
 				//Create initial properties to assign to the imported shapes.

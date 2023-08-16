@@ -48,9 +48,9 @@
 					<button id="loadLocalData" class="icon-btn-round" type="button"><i
 							class="material-symbols-outlined">database</i><span>Local data file</span></button>
 					
-					<input type="file" id="loadDetectorCountsFile" accept=".csv" />
+					<!-- <input type="file" id="loadDetectorCountsFile" accept=".csv" />
 					<button id="loadDetectorCounts" class="icon-btn-round" type="button"><i
-							class="material-symbols-outlined">lan</i><span>Global Counts CSV</span></button>
+							class="material-symbols-outlined">lan</i><span>Global Counts CSV</span></button> -->
 
 					<button id="loadOsmWizard" class="icon-btn-round" type="button"><i
 							class="material-symbols-outlined">auto_activity_zone</i><span>OSM Overpass
@@ -181,10 +181,23 @@
 							font-size: 15px;
 						}
 					</style>
+					<input type="file" id="loadDetectorCountsFile" accept=".csv" />
+					<button id="loadDetectorCounts" class="icon-btn-round" type="button"><i
+							class="material-symbols-outlined">lan</i><span>Global Counts CSV</span></button>
+					<br>
+					<br>
+					<input type="file" id="loadTileGeoJsonFiles"
+						accept=".geojson" multiple/>
+					<button id="loadTileGeoJsons" class="icon-btn-round" type="button"><i
+							class="material-symbols-outlined">database</i><span>Load Tiles</span></button>
+					<br>
+					<br>
 					<label id = "tilesLabel" for="TilesList">Select the tile to label and run DISCount</label>
 					<select id="TilesList"></select>
-					<button  id="MarkTileComplete" class="text-btn-round" type="button">Mark Tile Complete</button>
-					<button  id="SaveTiles" class="text-btn-round" type="button">Save Tiles</button>
+					<button  id="MarkTileComplete" class = "icon-btn-round" class="material-symbols-outlined" type="button">Mark Tile Complete</button>
+					<br>
+					<br>
+					<button  id="SaveTiles" class = "icon-btn-round"  class="material-symbols-outlined" type="button">Save Tiles</button>
 					
 				</div>
 
