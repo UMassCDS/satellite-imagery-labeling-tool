@@ -284,7 +284,7 @@ export class LabelerApp {
 
 		//Tiles Geojson files for DISCount
 		const loadTileGeoJsonFiles = document.getElementById('loadTileGeoJsonFiles');
-		loadTileGeoJsons.onchange = async(e) => {
+		loadTileGeoJsonFiles.onchange = async(e) => {
 			if (e.target.files && e.target.files.length > 0){
 				let loaded = await self.#tileManager.loadTilesFromFiles(e.target.files);
 				if(!loaded){
