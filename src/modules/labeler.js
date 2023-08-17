@@ -61,8 +61,8 @@ export class LabelerApp {
 		},
 		{
 			type: 'menuItem',
-			name: 'Tiles',
-			icon: 'tiles',
+			name: 'DISCount',
+			icon: 'DISCount',
 			flyoutCard: 'tilesCard'
 		},
 		{
