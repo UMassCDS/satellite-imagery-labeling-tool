@@ -3,7 +3,8 @@ export default class kDisCount {
     // g is a list of detector counts, eps is a small number to avoid zero division errors
     constructor(g, eps=4e-2) {
         if (Math.min(...g) == 0) {
-            g = g.map(x => x + eps);
+            const maxG = Math.max(...g);
+            g = g.map(x => x + Math.max(maxG * eps, 1));
         }
 
         this.g = g;
