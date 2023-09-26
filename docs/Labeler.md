@@ -3,8 +3,25 @@
 The labeler tool is the primary tool that those who will be reviewing the imagery and drawing the data will be using.
 
 ![Spatial labeling tool screenshot](assets/Labaler.png)
+## Labeler quickstart - DISCount
+The following steps detail what to do with the outputted tiles folder and annotations.csv file from the DISCount algorithm. 
+1. Run the following commands: 
 
-## Labeler quickstart
+    ```bash
+    cd satellite-imagery-labeling-tool
+    docker build . -t redcross
+    docker run -p 8888.8888 -p 1234:1234 redcross
+    ```
+2. In a browser, enter `localhost:1234` as the address. 
+3. Select the `labeler` option under the End user tools menu.
+4. Click the `DISCount` option in the menu on the left of the tool. 
+5. Click the `Global Counts CSV` button and upload your annotation file. 
+6. Click the `Load Tiles` button and upload your tiles. 
+7. Annotate the tile, then click the `Mark Tile Complete` button. This changes confidence interval of the tile and move it to the bottom of the tile directory. 
+8. In the `annotations.csv` file, enter your name and the true count in the table for the annotated tile. 
+9. When all tiles are annotated, click the `Save Tiles` button. The new GeoJSONs can be loaded back into the tool for further annotation. 
+
+## Labeler workflow
 
 1. Open the [labeling tool](https://microsoft.github.io/satellite-imagery-labeling-tool/src/labeler.html). Your project adminstrator may have provided a link that will open up your specific task or point to a forked version of this tool.
 
