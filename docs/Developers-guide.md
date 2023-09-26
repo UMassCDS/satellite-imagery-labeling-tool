@@ -32,7 +32,7 @@ You should install either [Docker Desktop](https://docs.docker.com/desktop/) or 
 For a more thorough explanation of working with Node.js projects using Docker, see [Docker Docs](https://docs.docker.com/language/nodejs/run-containers/).
 
 ### Build Image from Source Code
-The `Dockerfile` in the root of this repository defines how to build and run the web application in a container. To build a Docker image named `staellite-imagery-labeling-tool` using the source code in this repository, navigate to the same folder as the `Dockerfile`, then run `docker build --tag satellite-imagery-tool .`. This will create an image named `satellite-imagery-tool` and automatically tagged as `latest`.
+The `Dockerfile` in the root of this repository defines how to build and run the web application in a container. To build a Docker image named `satellite-imagery-labeling-tool` using the source code in this repository, navigate to the same folder as the `Dockerfile`, then run `docker build --tag satellite-imagery-tool .`. This will create an image named `satellite-imagery-tool` and automatically tagged as `latest`.
 When you run this command, you should see several steps followed by a success message with the image ID and name:
 ```
 $ docker build --tag satellite-imagery-labeling-tool .
@@ -72,6 +72,8 @@ $ docker image ls
 REPOSITORY                        TAG       IMAGE ID       CREATED          SIZE
 satellite-imagery-labeling-tool   latest    a6bb8ad1972a   14 minutes ago   1.32GB
 ```
+
+If you are running into errors building the container, you may want to double check your image platform. Build the container using the `--platform linux/amd64` or `--platform linux/arm64` flag. See [Docker Multi-platform images](https://docs.docker.com/build/building/multi-platform/) for more details.
 
 ### Pull a Pre-built Image from DockerHub
 Pre-built images are uploaded to the [umasscds/satellite-imagery-labeling-tool DockerHub repository](https://hub.docker.com/r/umasscds/satellite-imagery-labeling-tool). Instructions for pulling and running the image are on also DockerHub. DockerHub images are created automatically using GitHub actions each time a version tag (starting with '.v') is added in this GitHub repo.

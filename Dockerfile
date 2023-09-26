@@ -1,4 +1,4 @@
-FROM nikolaik/python-nodejs:latest
+FROM nikolaik/python-nodejs:python3.11-nodejs20
 
 WORKDIR /satellite-imagery-labeling-tool
 
