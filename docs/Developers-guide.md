@@ -81,18 +81,18 @@ Pre-built images are uploaded to the [umasscds/satellite-imagery-labeling-tool D
 ### Run Container
 Once you have built or pulled your desired image, you can run it in a container.
 
-Because the application in the container will be exposed on port 1234, we need to publish the container's 1234 port to a port on our host machine using the `-p, --publish` flag. Here we will publish to port 3000. See [this article](https://www.mend.io/free-developer-tools/blog/docker-expose-port/) for a detailed description on working with ports. We will use the `-d, --detach` flag to start a container in "detached mode", so the only output will be the container ID.
+Because the application in the container will be exposed on port 1234 and the tiling service is on port 8888, we need to publish the container's ports to the ports on our host machine using the `-p, --publish` flag. See [this article](https://www.mend.io/free-developer-tools/blog/docker-expose-port/) for a detailed description on working with ports. We will use the `-d, --detach` flag to start a container in "detached mode", so the only output will be the container ID.
 ```
-$ docker run -d -p 3000:1234 satellite-imagery-labeling-tool
-bf5d560a8cf5a70a85c372ad5218a39c78867b8fe165b0fa2194b995682feca8
+$ docker run -d -p 1234:1234 -p 8888:8888 satellite-imagery-labeling-tool
+b1d36e19e77c38547a7f201809e9fa3b7dccb7424a0eeabe471be675cd7bec9e
 ```
 
-Your application will now be available by opening http://localhost:3000 in your browser.
+Your application will now be available by opening http://localhost:1234 in your browser.
 
 You can see which containers are currently running and their ports using the `docker ps` command:
 ```
-CONTAINER ID   IMAGE                             COMMAND                  CREATED              STATUS              PORTS                                       NAMES
-bf5d560a8cf5   satellite-imagery-labeling-tool   "docker-entrypoint.s…"   About a minute ago   Up About a minute   0.0.0.0:3000->1234/tcp, :::3000->1234/tcp   admiring_northcutt
+CONTAINER ID   IMAGE                                  COMMAND                  CREATED              STATUS              PORTS                                            NAMES
+b1d36e19e77c   satellite-imagery-labeling-tool:test   "/bin/sh -c ./start.…"   About a minute ago   Up About a minute   0.0.0.0:1234->1234/tcp, 0.0.0.0:8888->8888/tcp   interesting_grothendieck
 ```
 
 Once you're finished with the application, stop it by running `docker stop <your container id>`.
@@ -100,7 +100,7 @@ Once you're finished with the application, stop it by running `docker stop <your
 ### Specifying Azure Maps Subscription Key for Container
 To enable Azure Maps when running the application in a Docker container, set the `AZURE_MAPS_SUBSCRIPTION_KEY` environment variable using the `--env` flag for the `docker run` command as follows:
 ```
-docker run --env AZ_MAPS_SUBSCRIPTION_KEY="<your subscription key here>" -d -p 3000:1234 satellite-imagery-labeling-tool
+docker run --env AZ_MAPS_SUBSCRIPTION_KEY="<your subscription key here>" -d -p 1234:1234 -p 8888:8888 satellite-imagery-labeling-tool
 ```
 
 More details about Azure Maps enabling Azure maps are found in the(Imagery Layers documentation)[Layers.md].
@@ -108,6 +108,6 @@ More details about Azure Maps enabling Azure maps are found in the(Imagery Layer
 ### Specifying SAS keys for accessing blobs
 In order to read from and write to Azure storage, add the three environment variables using `--env`, just as described in the last section:
 ```
-docker run --env AZ_STORAGE_ACCOUNTNAME="<your storage account name>" --env AZ_STORAGE_CONTAINERNAME="<your container name>" --env AZ_STORAGE_SASTOKEN="<your account SAS token>" -d -p 3000:1234 satellite-imagery-labeling-tool
+docker run --env AZ_STORAGE_ACCOUNTNAME="<your storage account name>" --env AZ_STORAGE_CONTAINERNAME="<your container name>" --env AZ_STORAGE_SASTOKEN="<your account SAS token>" -d -p 1234:1234 -p 8888:8888 satellite-imagery-labeling-tool
 ```
 You can generate your SAS token on Azure portal, navigate to "Storage Account-[your storage account]-Containers-[your container]-Shared access tokens". There you can generate an account SAS and set the expiry date, note that once you generate it, it cannot be revoked, so keep it safe by following the Microsoft recommended best [practice](https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview#best-practices-when-using-sas)!
