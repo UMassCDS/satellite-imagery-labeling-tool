@@ -15,10 +15,11 @@ The following steps detail what to do with the outputted tiles folder and annota
 2. In a browser, enter `localhost:1234` as the address. 
 3. Select the `labeler` option under the End user tools menu.
 4. Click the `DISCount` option in the menu on the left of the tool. 
-5. Click the `Global Counts CSV` button and upload your annotation file. 
+5. Click the `Global Counts CSV` button and upload the `annotations.csv` file (this is produced by the DISCount script). 
 6. Click the `Load Tiles` button and upload your tiles. 
-7. Annotate the tile, then click the `Mark Tile Complete` button. This changes confidence interval of the tile and move it to the bottom of the tile directory. 
-8. In the `annotations.csv` file, enter your name and the true count in the table for the annotated tile. 
+7. Annotate the tile, then click the `Mark Tile Complete` button. This changes confidence interval of the tile and moves it to the bottom of the tile directory. 
+8. Copy the `annotations.csv` file and paste it into a Google Sheets document. Enter your name and the true count in the table for the annotated tile. 
+    - Note: If there are multiple annotators working on the same file, ensure that each tile is assigned to an annotator to prevent overlap. 
 9. When all tiles are annotated, click the `Save Tiles` button. The new GeoJSONs can be loaded back into the tool for further annotation. 
 
 ## Labeler workflow
