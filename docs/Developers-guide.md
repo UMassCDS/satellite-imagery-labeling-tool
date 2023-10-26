@@ -4,19 +4,27 @@ There are multiple ways to run the Spatial imagery tool. Here are a few options 
 ## Option 1: Local Use and Development
  We recommend this option if you are going to change the application's code or use it only on your own computer and are comfortable with Javascript.
 
- This project uses [Parcel](https://parceljs.org/) to run development servers and build packages for [a web app](https://parceljs.org/getting-started/webapp/). The following instructions detail how to use Parcel with Node.js/npm for this project.
+ This project uses [Parcel](https://parceljs.org/) to run development servers and build packages for [a web app](https://parceljs.org/getting-started/webapp/). The following instructions detail how to use Parcel with Node.js/npm for this project. For convenience, we have also provided the script `start.sh` which includes all these steps.
 
 ### Dependencies
-For development on the Spatial Labeling tool, install [Node.js](https://nodejs.org/en/) and the [Node Package Manager (npm)](https://docs.npmjs.com/) by following the [installation instructions in the npm Docs](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm).
+For development on the Spatial Labeling tool, install [Node.js](https://nodejs.org/en/) and the [Node Package Manager (npm)](https://docs.npmjs.com/) by following the [installation instructions in the npm Docs](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm). You should should also have python 3.11 available in a virtual environment.
 
 ### Local Installation
-From the root of this repository, run `npm install` from the console.
+From the root of this repository, run `npm install` from the console to install the web application dependencies. 
+
+You must also install the Titiler service which hosts the GeoTIFF map images via python dependencies by running `pip install -r requirements.txt`. The application has been tested with python 3.11, and we recommend using a python 3.11 virtual environment.
+
+### Starting the Tiling Service
+The tiling service can be started by running `uvicorn titiler.application.main:app --host 0.0.0.0 --port 8888`.
+
 
 ### Development Server
-You can start a development server at localhost:1234 by running `npm start`. This is recommended for development, because any code changes will be automatically reloaded on the running website.
+You can start a development server at localhost:1234 by running `npm start`. This is recommended for development, because any code changes will be automatically reloaded on the running website. 
 
 ### Bundle for Web Server
 To bundle and optimize code for production, run `npm run build`, which packages optimized code for a web server, creating the files in a `dist` folder. The files in `dist` are ready to be hosted on a simple web server, for example in [nginx](https://www.nginx.com/).
+
+
 
 ### Cleaning
 If you change the Parcel or Node configurations, you may want to clean up artifacts by running `npm run clean` to remove the `dist` and `.parcel-cache` folders.
