@@ -5,14 +5,8 @@ The labeler tool is the primary tool that those who will be reviewing the imager
 ![Spatial labeling tool screenshot](assets/Labaler.png)
 ## Labeler quickstart - DISCount
 The following steps detail what to do with the outputted tiles folder and annotations.csv file from the DISCount algorithm. 
-1. Run the following commands: 
-
-    ```bash
-    cd satellite-imagery-labeling-tool
-    docker build . -t redcross
-    docker run -p 8888.8888 -p 1234:1234 redcross
-    ```
-2. In a browser, enter `localhost:1234` as the address. 
+1. Build and run the labeling tool as described in the [Developer's Guide](Developers-guide.md)
+2. In a browser, navigate to `localhost:<port>` as the address, filling in the appropriate port the application is running on.
 3. Select the `labeler` option under the End user tools menu.
 4. Click the `DISCount` option in the menu on the left of the tool. 
 5. Click the `Global Counts CSV` button and upload the `annotations.csv` file (this is produced by the DISCount script). 

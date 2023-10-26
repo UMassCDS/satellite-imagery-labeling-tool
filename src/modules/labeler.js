@@ -3,9 +3,11 @@ import { mapSettings } from '../settings/map_settings.js';
 
 import { BlobServiceClient } from "@azure/storage-blob";
 import { AnnotationClassControl, SearchBarControl, SimpleContentControl, SimpleLayerControl } from './controls/customMapControls.js';
-import { AddLayerDialog } from './controls/dialogs.js';
+import { AddLayerDialog,AddTiffDialog } from './controls/dialogs.js';
 import { Flyout, Navbar } from './controls/layoutControls.js';
 import { Utils } from './utils.js';
+import kDisCount from './discount.js';
+import TileManager from './TileManager.js';
 
 
 /** The main logic for the spatial annotation labeler app. */
@@ -24,6 +26,10 @@ export class LabelerApp {
 	#classControl;
 	#statsControl;
 	#layerDialog;
+	#tiffDialog;
+	#tileManager;
+	#discountRunner;
+	#currentTile = null;
 	#layerOptions = {
 		fadeDuration: 0,
 		contrast: 0,
@@ -52,6 +58,12 @@ export class LabelerApp {
 			name: 'Layers',
 			icon: 'layers',
 			flyoutCard: 'layersCard'
+		},
+		{
+			type: 'menuItem',
+			name: 'DISCount',
+			icon: 'DISCount',
+			flyoutCard: 'tilesCard'
 		},
 		{
 			type: 'menuItem',
@@ -123,6 +135,8 @@ export class LabelerApp {
 		self.#storage = localforage.createInstance({
 			name: appSettings.autoSave.name
 		});
+
+		self.#tileManager = new TileManager();
 
 		self.#initSettingsPanel();
 
@@ -248,9 +262,47 @@ export class LabelerApp {
 			loadLocalTaskFile.click();
 		};
 
+		const detectorCountsFile = document.getElementById('loadDetectorCountsFile');
+		detectorCountsFile.onchange = async(e)=>{
+			const self = this;
+			if (e.target.files && e.target.files.length > 0){
+				try{
+					let detectorCountsArray = await self.#tileManager.loadDetectorCountsFile(e.target.files[0]);
+					self.#discountRunner = new kDisCount(detectorCountsArray);
+				} catch{
+					alert('Failed to load counts csv');
+				}
+			};
+		}
+
+		//Click event for a button to load detector counts data file.
+		document.getElementById('loadDetectorCounts').onclick = () => {
+			self.#popup.close();
+			detectorCountsFile.click();
+		};
+
+
+		//Tiles Geojson files for DISCount
+		const loadTileGeoJsonFiles = document.getElementById('loadTileGeoJsonFiles');
+		loadTileGeoJsonFiles.onchange = async(e) => {
+			if (e.target.files && e.target.files.length > 0){
+				let loaded = await self.#tileManager.loadTilesFromFiles(e.target.files);
+				if(!loaded){
+					loadLocalDataFiles.value = null;
+					return;
+				}
+				self.#initTilesPanel();
+			}
+		}
+		//Click event for a button to load tiles Geojson files.
+		document.getElementById('loadTileGeoJsons').onclick = () => {
+			self.#popup.close();
+			loadTileGeoJsonFiles.click();
+		};
+
 		//File input for local data.
-		const loadLocalDataFile = document.getElementById('loadLocalDataFile');
-		loadLocalDataFile.onchange = (e) => {
+		const loadLocalDataFiles = document.getElementById('loadLocalDataFile');
+		loadLocalDataFiles.onchange = async (e) => {
 			if (e.target.files && e.target.files.length > 0) {
 				const file = e.target.files[0];
 
@@ -297,14 +349,14 @@ export class LabelerApp {
 				}
 
 				//Clear the file input so that the same file can be reloaded if desired.
-				loadLocalDataFile.value = null;
+				loadLocalDataFiles.value = null;
 			}
 		};
 
 		//Click event for a button to load local data file.
 		document.getElementById('loadLocalData').onclick = () => {
 			self.#popup.close();
-			loadLocalDataFile.click();
+			loadLocalDataFiles.click();
 			self.flyout.hide();
 		};
 
@@ -331,7 +383,7 @@ export class LabelerApp {
 			document.getElementById('customImportBtn').style.display = 'none';
 		}
 
-		//Handle custom data importer
+		//Handle custom data
 		document.getElementById('customImportBtn').onclick = () => {
 			const server = self.config.properties.customDataService;
 
@@ -514,15 +566,19 @@ export class LabelerApp {
 
 		//Create add layer dialog.
 		self.#layerDialog = new AddLayerDialog(self.map);
+		self.#tiffDialog = new AddTiffDialog(self.map);
 
-		self.#layerDialog.on('close', (layers) => {
-			if (layers) {
-				self.#addLayers(layers);
+		let addLayersCallback = (layers) => {
+            if (layers) {
+                self.#addLayers(layers);
 
-				//Reload the layer list states.
-				self.#updateLayerStates();
-			}
-		});
+                //Reload the layer list states.
+                self.#updateLayerStates();
+            }
+        }
+
+		self.#layerDialog.on('close', addLayersCallback);
+        self.#tiffDialog.on('close', addLayersCallback)
 
 		//Reset filters button
 		document.querySelector('#layersCard input[type="button"]').onclick = () => {
@@ -545,10 +601,116 @@ export class LabelerApp {
 		};
 
 		//Add layer(s) button click
-		document.querySelector('#layersCard button').onclick = () => {
+		document.querySelector('#add-layer-btn').onclick = () => {
 			self.#popup.close();
 			self.#layerDialog.show();
 		};
+		//Add tiff(s) button click
+        document.querySelector('#add-tiff-btn').onclick = () => {
+            self.#tiffDialog.show();
+        };
+	}
+
+	#initTilesPanel() {
+		const self = this;
+		let tilesListBox = document.getElementById('TilesList')
+		let [incompleteTiles,completeTiles] = this.#tileManager.getMarkedAndUnmarkedTiles();
+		tilesListBox.innerHTML = "";
+		for(let tile of incompleteTiles){
+			tilesListBox.add(new Option(tile,tile));
+		}
+		for(let tile of completeTiles){
+			let option = new Option(tile,tile);
+			option.style.background = 'gray'
+			tilesListBox.add(option);
+		}
+		tilesListBox.addEventListener('change',()=>{
+			self.#refreshTileSelection();
+		})
+		self.#refreshTileSelection();
+	}
+
+	#refreshTileSelection(){
+		try{
+			let tilesListBox = document.getElementById('TilesList')
+			let currentTile = tilesListBox.value
+			let boundaries = this.#tileManager.getTileBoundaries(currentTile);
+			let bbox = atlas.data.BoundingBox(boundaries);
+			// Set the camera
+			this.map.setCamera({	
+				bounds: boundaries,
+				maxBounds: bbox,
+				padding: 100
+			});
+			if(this.#currentTile !== currentTile){
+				this.#currentTile = currentTile
+				this.#updateTiffLayers(currentTile);
+			}
+			this.#featureSource.clear()
+			this.#importFeatures(this.#tileManager.getTileFeatures(currentTile),'TileFeatures',false,true)
+			this.#runAndUpdateDiscount()
+		} catch(e){
+			console.log(e)
+		}
+	}
+
+	#updateShapesForTile(){
+		if(!this.#currentTile)
+			return;
+		let prev_count = this.#tileManager.getTileFeatures(this.#currentTile).length;
+		if(prev_count!=this.#featureSource.shapes.length){
+			this.#processCurrentPolygonsForTile();
+		}
+	}
+	#processCurrentPolygonsForTile(){
+		this.#tileManager.markTileComplete(this.#currentTile,this.#featureSource.shapes)
+		this.#runAndUpdateDiscount()
+	}
+
+	#runAndUpdateDiscount(){
+		this.#discountRunner.load(...this.#tileManager.getUpdatedTileIndicesAndCounts());
+		let disCountResults = this.#discountRunner.estimate()
+		let currTileCount = this.#tileManager.getTileFeatures(this.#currentTile).length;
+		document.querySelector('#appSubtitle').innerHTML = "Discount :  Tile - "+currTileCount+" | Global Estimate - "+Math.round(disCountResults.fHat) +" | CI - "+Math.round(disCountResults.cI);
+	}
+
+	#updateTiffLayers(tileName){
+		const self = this;
+		let [preUrl,postUrl] = this.#tileManager.getPrePostTiffUrls(tileName);
+		preUrl = 'http://localhost:8888/cog/tiles/{z}/{x}/{y}.jpg?url=' + preUrl;
+		postUrl = 'http://localhost:8888/cog/tiles/{z}/{x}/{y}.jpg?url=' + postUrl;
+		let preAdded = false,postAdded = false;
+		let preOptions = {
+            type: 'TileLayer',
+            tileUrl: preUrl,
+            tileSize: 256,
+            enabled: true
+        };
+		let postOptions = {
+            type: 'TileLayer',
+            tileUrl: postUrl,
+            tileSize: 256,
+            enabled: true
+        };
+		for(let idx in self.#baselayers){
+			let layer = self.#baselayers[idx];
+			if(layer.getId()==='pre'){
+				preAdded = true;
+				layer.setOptions(preOptions);
+			}
+			else if(layer.getId()==='post'){
+				postAdded = true;
+				layer.setOptions(postOptions);
+			}
+		}
+		let layersToAdd = {}
+		if(!preAdded) layersToAdd['pre'] = preOptions;
+		if(!postAdded) layersToAdd['post'] = postOptions;
+		this.#addLayers(layersToAdd);
+
+		// Move the tiff layers to the lowest z index
+		this.map.layers.move('post',0);
+		this.map.layers.move('pre',0);
 	}
 
 	/** Initializes the save panel. */
@@ -957,10 +1119,27 @@ export class LabelerApp {
 			}
 		});
 
+		// Callback for marking a tile complete for DISCount
+		let markCompleteButton = document.getElementById('MarkTileComplete')
+		markCompleteButton.onclick = ()=>{
+			self.#processCurrentPolygonsForTile();
+			self.#initTilesPanel();
+		}
+
+		let saveTilesButton = document.getElementById('SaveTiles')
+		saveTilesButton.onclick = ()=>{
+			self.#tileManager.saveTilesZip()
+		}
+
 		//Monitor for when drawing has been completed.
 		map.events.add('drawingcomplete', dm, (e) => {
 			self.#drawingComplete(e);
 		});
+
+		// Try to update the shapes if data changes
+		map.events.add('data',()=>{
+			self.#updateShapesForTile()
+		})
 
 		//When drawing mode changed, close the popup.
 		map.events.add('drawingmodechanged', dm, (mode) => {
@@ -1077,17 +1256,16 @@ export class LabelerApp {
 				includeMarkers: false,
 				includeImageLayers: false,
 				sources: [self.#aoiSource, self.#featureSource]
-			}),
-			new atlas.control.ZoomControl()], {
+			})], {
 			position: 'bottom-right'
 		});
 
 		//Add the search bar if valid Azure Maps credentials provided, and app settings have this feature enabled.
-		if (self.#hasAZMapAuth && appSettings.showSearchBar) {
-			map.controls.add(new SearchBarControl(), {
-				position: 'top-left'
-			});
-		}
+		// if (self.#hasAZMapAuth && appSettings.showSearchBar) {
+		// 	map.controls.add(new SearchBarControl(), {
+		// 		position: 'top-left'
+		// 	});
+		// }
 
 		document.getElementById('dataShiftFilter').options[1].style.display = (self.#hasAZMapAuth) ? '' : 'none';
 
