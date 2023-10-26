@@ -4,7 +4,7 @@ There are multiple ways to run the Spatial imagery tool. Here are a few options 
 ## Option 1: Local Use and Development
  We recommend this option if you are going to change the application's code or use it only on your own computer and are comfortable with Javascript.
 
- This project uses [Parcel](https://parceljs.org/) to run development servers and build packages for [a web app](https://parceljs.org/getting-started/webapp/). The following instructions detail how to use Parcel with Node.js/npm for this project. For convenience, we have also provided the script `start.sh` which includes all these steps.
+ This project uses [Parcel](https://parceljs.org/) to run development servers and build packages for [a web app](https://parceljs.org/getting-started/webapp/). The following instructions detail how to use Parcel with Node.js/npm for this project. For convenience, we have also provided the script `start.sh` which includes the steps for running the application as a development server.
 
 ### Dependencies
 For development on the Spatial Labeling tool, install [Node.js](https://nodejs.org/en/) and the [Node Package Manager (npm)](https://docs.npmjs.com/) by following the [installation instructions in the npm Docs](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm). You should should also have python 3.11 available in a virtual environment.
@@ -23,8 +23,6 @@ You can start a development server at localhost:1234 by running `npm start`. Thi
 
 ### Bundle for Web Server
 To bundle and optimize code for production, run `npm run build`, which packages optimized code for a web server, creating the files in a `dist` folder. The files in `dist` are ready to be hosted on a simple web server, for example in [nginx](https://www.nginx.com/).
-
-
 
 ### Cleaning
 If you change the Parcel or Node configurations, you may want to clean up artifacts by running `npm run clean` to remove the `dist` and `.parcel-cache` folders.
